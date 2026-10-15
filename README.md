@@ -31,3 +31,7 @@ When you open the app, your balance is **0**. With two buttons you can **add** o
 - **Local** storage on the device (no accounts, ads, analytics, or own servers). **Privacy policy** inside the app (Settings → About).
 - Export/import data as JSON.
 - **Google Drive** (optional): backup and sync in a private folder of your Drive, using Google's current API. Hidden until you register the app in Google Cloud and set `driveActivado: true`.
+
+
+## About AI:
+I use AI for debugging and better code practices, this is a hobby proyect so please if you found something that i can do better, please contact me or send a pull!
