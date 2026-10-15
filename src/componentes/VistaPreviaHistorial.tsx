@@ -1,28 +1,18 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Animated,
-  Easing,
-  Pressable,
-  StyleSheet,
-  View,
-  type LayoutChangeEvent,
-} from 'react-native';
+import { AccessibilityInfo, Animated, Easing, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import type { Movimiento } from '@/dominio/tipos';
 import { useHoy } from '@/hooks/useHoy';
-import { radios, type Paleta } from '@/tema/paleta';
+import type { Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
 import { EstadoVacio } from './EstadoVacio';
-import { Icono } from './Icono';
 import { ItemMovimiento } from './ItemMovimiento';
 import { Tarjeta } from './Tarjeta';
-import { Texto } from './Texto';
 
-/** Cuántos movimientos recientes se previsualizan antes de la fila «Gráficas e Historial». */
+/** Cuántos movimientos recientes se previsualizan (el resto está en Gráficas e Historial). */
 export const MAX_FILAS_VISTA_PREVIA = 12;
 
 const VELOCIDAD_DP_POR_SEGUNDO = 30;
@@ -36,14 +26,16 @@ interface Props {
   movimientos: readonly Movimiento[];
   /** Se llama al tocar cualquier fila: lleva a Gráficas e Historial. */
   onAbrir: () => void;
+  /** `false` con otra pantalla encima: el desplazamiento se detiene (vuelve a empezar al volver). */
+  animar?: boolean;
 }
 
 /**
- * Vista previa del historial que se desplaza sola: baja despacio por los últimos movimientos, se detiene
- * en la fila «Gráficas e Historial», vuelve arriba y repite. Rellena el alto que le dé su contenedor.
- * No anima si todo cabe ni con «reducir animaciones» activado.
+ * Vista previa del historial que se desplaza sola: baja despacio por los últimos movimientos, se detiene en el último,
+ * vuelve arriba y repite. Rellena el alto que le dé su contenedor. No anima si todo cabe, con otra pantalla encima ni
+ * con «reducir animaciones» activado. Para ver más está la tarjeta «Gráficas e Historial», justo encima.
  */
-export function VistaPreviaHistorial({ movimientos, onAbrir }: Props) {
+export function VistaPreviaHistorial({ movimientos, onAbrir, animar = true }: Props) {
   const estilos = useEstilos(crearEstilos);
   const { colores, i18n } = useAjustes();
   const hoy = useHoy();
@@ -56,7 +48,7 @@ export function VistaPreviaHistorial({ movimientos, onAbrir }: Props) {
 
   useEffect(() => {
     desplazamiento.setValue(0);
-    if (distancia <= 0) return;
+    if (distancia <= 0 || !animar) return;
 
     let vigente = true;
     let animacion: Animated.CompositeAnimation | undefined;
@@ -86,7 +78,7 @@ export function VistaPreviaHistorial({ movimientos, onAbrir }: Props) {
       vigente = false;
       animacion?.stop();
     };
-  }, [desplazamiento, distancia]);
+  }, [desplazamiento, distancia, animar]);
 
   if (movimientos.length === 0) {
     return (
@@ -113,30 +105,12 @@ export function VistaPreviaHistorial({ movimientos, onAbrir }: Props) {
           style={[estilos.contenido, { transform: [{ translateY: desplazamiento }] }]}
           onLayout={alMedirContenido}
         >
-          {recientes.map((movimiento) => (
+          {recientes.map((movimiento, i) => (
             <View key={movimiento.id}>
+              {i > 0 ? <View style={estilos.separador} /> : null}
               <ItemMovimiento movimiento={movimiento} hoy={hoy} onPress={abrir} />
-              <View style={estilos.separador} />
             </View>
           ))}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={i18n.t('inicio.enlace_accesible')}
-            onPress={abrir}
-            android_ripple={{ color: 'rgba(128,128,128,0.15)' }}
-            style={({ pressed }) => [estilos.verMas, pressed && { opacity: 0.7 }]}
-          >
-            <View style={estilos.iconoVerMas}>
-              <Icono nombre="stats-chart" tamano={18} color="primario" />
-            </View>
-            <View style={estilos.textoVerMas}>
-              <Texto variante="cuerpo" negrita numberOfLines={1}>
-                {i18n.t('inicio.enlace_titulo')}
-              </Texto>
-              <Texto variante="pequeno">{i18n.t('inicio.ver_mas')}</Texto>
-            </View>
-            <Icono nombre="chevron-forward" tamano={20} color="textoTenue" />
-          </Pressable>
         </Animated.View>
 
         <LinearGradient
@@ -161,7 +135,7 @@ const crearEstilos = (c: Paleta) =>
     tarjeta: { flex: 1, minHeight: 96, padding: 0, overflow: 'hidden' },
     vacio: { justifyContent: 'center' },
     ventana: { flex: 1, overflow: 'hidden' },
-    // El relleno de abajo evita que el desvanecido inferior apague la fila final al llegar al tope.
+    // El relleno de abajo evita que el desvanecido inferior apague el último movimiento al llegar al tope.
     contenido: {
       position: 'absolute',
       top: 0,
@@ -172,16 +146,6 @@ const crearEstilos = (c: Paleta) =>
       paddingBottom: 8,
     },
     separador: { height: StyleSheet.hairlineWidth, backgroundColor: c.borde },
-    verMas: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 4 },
-    iconoVerMas: {
-      width: 38,
-      height: 38,
-      borderRadius: radios.pildora,
-      backgroundColor: c.superficieAlta,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    textoVerMas: { flex: 1, gap: 2 },
     desvanecido: { position: 'absolute', left: 0, right: 0, height: ALTO_DESVANECIDO },
     desvanecidoArriba: { top: 0 },
     desvanecidoAbajo: { bottom: 0 },

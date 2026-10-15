@@ -35,6 +35,15 @@ const libreria = (): Promise<typeof import('expo-ai-kit')> =>
     }
   });
 
+/**
+ * El motor (LiteRT-LM) corre en procesadores ARM de 64 bits. En uno de 32 bits (o x86) no se puede cargar un modelo de
+ * 2.6 GB: mejor no ofrecer la descarga. `null` si no se sabe (no se descarta el teléfono por eso).
+ */
+function esArm64(): boolean | null {
+  const arquitecturas = Device.supportedCpuArchitectures;
+  return arquitecturas ? arquitecturas.includes('arm64-v8a') : null;
+}
+
 function leerDisco(): number | null {
   try {
     const libre = Paths.availableDiskSpace;
@@ -59,6 +68,7 @@ export function crearServicioExpoAiKit(): ServicioIA {
       const ramBytes = Device.totalMemory;
       // Solo Android por ahora: el motor también corre en iOS, pero no se ha probado ahí.
       if (Platform.OS !== 'android') return { compatible: false, motivo: 'plataforma', ramBytes };
+      if (esArm64() === false) return { compatible: false, motivo: 'procesador', ramBytes };
       if (ramBytes !== null && ramBytes < RAM_MINIMA_BYTES) return { compatible: false, motivo: 'ram', ramBytes };
 
       try {

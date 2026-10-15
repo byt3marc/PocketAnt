@@ -2,9 +2,11 @@ import { crearI18n } from '@/i18n/traducir';
 
 import {
   claveDeFecha,
-  diasEntre,
+  diasDelMes,
+  dosDigitos,
   esClaveValida,
   formatearDia,
+  formatearHora,
   formatearRango,
   inicialDia,
   nombreDiaCorto,
@@ -35,10 +37,17 @@ describe('fechas', () => {
     expect(sumarDias('2024-02-28', 1)).toBe('2024-02-29');
   });
 
-  it('cuenta los días entre dos claves', () => {
-    expect(diasEntre('2026-10-06', '2026-10-12')).toBe(6);
-    expect(diasEntre('2026-03-01', '2026-03-01')).toBe(0);
-    expect(diasEntre('2026-10-12', '2026-10-06')).toBe(-6);
+  it('rellena con un cero y cuenta los días de cada mes', () => {
+    expect(dosDigitos(7)).toBe('07');
+    expect(dosDigitos(12)).toBe('12');
+    expect(diasDelMes(2026, 1)).toBe(28);
+    expect(diasDelMes(2028, 1)).toBe(29);
+    expect(diasDelMes(2026, 9)).toBe(31);
+  });
+
+  it('formatea la hora en 24 h', () => {
+    expect(formatearHora(8)).toBe('08:00');
+    expect(formatearHora(21, 5)).toBe('21:05');
   });
 
   it('arma la ventana de días de más antiguo a más reciente', () => {

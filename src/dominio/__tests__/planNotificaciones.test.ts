@@ -35,8 +35,10 @@ function gasto(parcial: Partial<Movimiento> = {}): Movimiento {
   };
 }
 
+// Base de las pruebas del plan: los valores por defecto, pero con el recordatorio encendido (viene apagado).
 const ajustes = (cambios: Partial<AjustesNotificaciones> = {}): AjustesNotificaciones => ({
   ...NOTIFICACIONES_POR_DEFECTO,
+  recordatorio: { ...NOTIFICACIONES_POR_DEFECTO.recordatorio, activo: true },
   ...cambios,
 });
 
@@ -84,7 +86,7 @@ describe('horasDeRecordatorio', () => {
 describe('recordatorios', () => {
   const sinCobros = ajustes({ cobros: { activo: false, diasAntes: 3 } });
 
-  it('programa un aviso diario por franja, por defecto de 8:00 a 22:00 cada hora', () => {
+  it('al encenderlo, programa un aviso diario por franja, por defecto de 8:00 a 22:00 cada hora', () => {
     const recordatorios = plan([], sinCobros);
     expect(recordatorios).toHaveLength(15);
     expect(recordatorios[0].disparo).toEqual({ tipo: 'diario', hora: 8, minuto: 0 });
@@ -209,7 +211,7 @@ describe('avisos de cobros recurrentes', () => {
 });
 
 describe('plan completo', () => {
-  it('por defecto: 15 recordatorios diarios más los avisos de cobros', () => {
+  it('con el recordatorio encendido: 15 recordatorios diarios más los avisos de cobros', () => {
     const todo = plan([gasto()]);
     expect(todo.filter((s) => s.datos.tipo === 'recordatorio')).toHaveLength(15);
     expect(soloCobros(todo)).toHaveLength(3);
@@ -244,9 +246,9 @@ describe('normalizarNotificaciones', () => {
     expect(normalizarNotificaciones('basura')).toEqual(NOTIFICACIONES_POR_DEFECTO);
   });
 
-  it('por defecto: recordatorio cada 1 h de 8 a 22 y avisos de cobros 3 días antes', () => {
+  it('por defecto: recordatorio apagado (cada 1 h de 8 a 22 al encenderlo) y avisos de cobros 3 días antes', () => {
     expect(NOTIFICACIONES_POR_DEFECTO).toEqual({
-      recordatorio: { activo: true, cadaHoras: 1, desde: 8, hasta: 22 },
+      recordatorio: { activo: false, cadaHoras: 1, desde: 8, hasta: 22 },
       cobros: { activo: true, diasAntes: 3 },
       permisoPreguntado: false,
     });

@@ -1,9 +1,16 @@
 import { DIAS_CORTOS, DIAS_INICIALES, MESES_CORTOS } from '@/i18n/calendario';
 import type { I18n, Idioma } from '@/i18n/traducir';
 
-const MS_POR_DIA = 86_400_000;
+/** "7" → "07". */
+export const dosDigitos = (n: number) => String(n).padStart(2, '0');
 
-const dosDigitos = (n: number) => String(n).padStart(2, '0');
+/** Días que tiene un mes (`mes0` de 0 = enero a 11). */
+export const diasDelMes = (anio: number, mes0: number) => new Date(anio, mes0 + 1, 0).getDate();
+
+/** "08:00", "21:35": la hora en 24 h, igual en todos los idiomas. */
+export function formatearHora(hora: number, minutos = 0): string {
+  return `${dosDigitos(hora)}:${dosDigitos(minutos)}`;
+}
 
 /** Los días se manejan como claves `YYYY-MM-DD` en hora local, sin zona horaria. */
 export function claveDeFecha(fecha: Date): string {
@@ -29,14 +36,6 @@ export function sumarDias(clave: string, dias: number): string {
   const fecha = fechaDeClave(clave);
   fecha.setDate(fecha.getDate() + dias);
   return claveDeFecha(fecha);
-}
-
-export function diasEntre(desde: string, hasta: string): number {
-  const a = fechaDeClave(desde);
-  const b = fechaDeClave(hasta);
-  const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-  const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-  return Math.round((utcB - utcA) / MS_POR_DIA);
 }
 
 /** Las `dias` claves que terminan en `diaFinal` (inclusive), de la más antigua a la más reciente. */

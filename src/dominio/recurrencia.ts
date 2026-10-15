@@ -1,10 +1,7 @@
+import { diasDelMes, dosDigitos } from './fechas';
 import type { Movimiento } from './tipos';
 
 const MAX_ITERACIONES = 1200;
-
-const dosDigitos = (n: number) => String(n).padStart(2, '0');
-
-const diasDelMes = (anio: number, mes0: number) => new Date(anio, mes0 + 1, 0).getDate();
 
 type MovimientoRecurrente = Pick<Movimiento, 'fecha' | 'recurrente' | 'periodo' | 'frecuencia'>;
 

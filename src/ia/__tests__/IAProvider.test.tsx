@@ -6,8 +6,8 @@ import { AvisoProvider } from '@/componentes/AvisoProvider';
 import { MAX_CARACTERES_RESPUESTA } from '@/dominio/promptIA';
 
 import { IAProvider, useIA } from '../IAProvider';
-import { crearSegundoPlanoFalso } from '../segundoPlano';
-import { crearServicioFalso, type OpcionesServicioFalso } from '../servicioFalso';
+import { crearSegundoPlanoFalso } from '@/pruebas/segundoPlanoFalso';
+import { crearServicioFalso, type OpcionesServicioFalso } from '@/pruebas/servicioIAFalso';
 import type { EvaluacionIA } from '../tipos';
 
 jest.mock('@/ajustes/almacen', () => ({
@@ -372,6 +372,22 @@ describe('IAProvider: descarga en segundo plano', () => {
   };
   const aSegundoPlano = () => poner('background');
   beforeEach(() => poner('active'));
+
+  it('si Android no deja encender el servicio, la descarga sigue con la app abierta y se puede repetir', async () => {
+    await montar();
+    segundo.iniciar = () => {
+      throw new Error('ForegroundServiceStartNotAllowedException');
+    };
+    await pulsar('descargar');
+    expect(valor('fase')).toBe('descargando');
+    await avanzar(300);
+    expect(valor('fase')).toBe('descargado');
+    // No quedó «ocupado»: eliminar y volver a descargar funciona.
+    await pulsar('eliminar');
+    await avanzar(50);
+    await pulsar('descargar');
+    expect(valor('fase')).toBe('descargando');
+  });
 
   it('enciende el servicio al empezar, con la notificación ya traducida, y lo apaga al terminar', async () => {
     await montar();

@@ -1,7 +1,7 @@
 import type { MensajeIA } from '@/dominio/promptIA';
 
-import type { ResultadoDescarga } from './descargaModelo';
-import type { EvaluacionIA, Generacion, InfoModelo, ServicioIA } from './tipos';
+import type { ResultadoDescarga } from '@/ia/descargaModelo';
+import type { EvaluacionIA, Generacion, InfoModelo, ServicioIA } from '@/ia/tipos';
 
 /** Un error con el `code` de la librería real (`ModelError`), para probar los mensajes. */
 export class ErrorFalso extends Error {

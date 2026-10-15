@@ -26,6 +26,8 @@ interface Props {
   navegable?: boolean;
   /** Tarjeta angosta para el Home en dos columnas: solo montos (sin rótulos), ejes más chicos y sin interacción. */
   compacto?: boolean;
+  /** `false` con otra pantalla encima: el esqueleto (sin datos) deja de latir. */
+  animar?: boolean;
 }
 
 /** Tarjeta con título, rango de fechas, totales (que además hacen de leyenda) y la gráfica. */
@@ -38,6 +40,7 @@ export function BloqueGrafica({
   alto,
   navegable,
   compacto = false,
+  animar = true,
 }: Props) {
   const estilos = useEstilos(crearEstilos);
   const { formatear, i18n } = useAjustes();
@@ -127,6 +130,7 @@ export function BloqueGrafica({
         modoEtiquetas={modoEtiquetas}
         esqueleto={!hayDatosEnApp}
         compacto={compacto}
+        animar={animar}
       />
 
       {hayDatosEnApp && !resumen.hayMovimientos && !compacto ? (

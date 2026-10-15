@@ -5,7 +5,7 @@ import { AjustesProvider } from '@/ajustes/AjustesProvider';
 import { analizar } from '@/dominio/analisis';
 import type { Movimiento } from '@/dominio/tipos';
 import { IAProvider, useIA } from '@/ia/IAProvider';
-import { crearServicioFalso, type OpcionesServicioFalso } from '@/ia/servicioFalso';
+import { crearServicioFalso, type OpcionesServicioFalso } from '@/pruebas/servicioIAFalso';
 
 import { AnalisisReglas } from '../AnalisisReglas';
 import { BloqueIA } from '../BloqueIA';

@@ -1,96 +1,116 @@
 import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+  codigoDeError,
+  moduloAutorizacion,
+  type ModuloAutorizacion,
+} from '../../../../modules/autorizacion-google';
 
-import { SCOPE_DRIVE_APPDATA, WEB_CLIENT_ID } from './config';
+import { fetchConTiempoMaximo } from '@/datos/red';
+
+import { SCOPE_DRIVE_APPDATA } from './config';
 import { ErrorDrive } from './errores';
 
 export interface CuentaGoogle {
   email: string;
 }
 
-let configurado = false;
-function configurar(): void {
-  if (configurado) return;
-  GoogleSignin.configure({
-    webClientId: WEB_CLIENT_ID,
-    scopes: [SCOPE_DRIVE_APPDATA],
-    offlineAccess: false,
-  });
-  configurado = true;
+/** Lo que la app necesita de la cuenta de Google para hablar con Drive. */
+export interface AccesoGoogle {
+  /** Muestra la pantalla de Google (elegir cuenta y aceptar). `null` si el usuario la cierra. */
+  conectarCuenta: () => Promise<CuentaGoogle | null>;
+  /** Retira el permiso de la app en esa cuenta. No borra la copia que ya está en Drive. */
+  desconectarCuenta: (email: string | null) => Promise<void>;
+  /** Token de acceso vigente, sin mostrar nada. Si Google pide confirmar de nuevo, hay que reconectar. */
+  obtenerTokenDeAcceso: () => Promise<string>;
+  /** Google rechazó este token: se descarta para que el siguiente sea nuevo. */
+  descartarToken: (token: string) => Promise<void>;
 }
 
-/**
- * Abre el selector de cuentas de Google y pide acceso a la carpeta de la app en Drive.
- * Devuelve `null` si el usuario cancela.
- */
-export async function conectarCuenta(): Promise<CuentaGoogle | null> {
-  configurar();
-  try {
-    await GoogleSignin.hasPlayServices();
-    const respuesta = await GoogleSignin.signIn();
-    if (!isSuccessResponse(respuesta)) return null; // canceló
+const SCOPES = [SCOPE_DRIVE_APPDATA];
+/** `about` acepta el permiso `drive.appdata`: así se sabe el correo de la cuenta sin pedir otro permiso. */
+const URL_USUARIO = 'https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)';
 
-    let datos = respuesta.data;
-    if (!datos.scopes.includes(SCOPE_DRIVE_APPDATA)) {
-      const ampliada = await GoogleSignin.addScopes({ scopes: [SCOPE_DRIVE_APPDATA] });
-      if (!ampliada || !isSuccessResponse(ampliada) || !ampliada.data.scopes.includes(SCOPE_DRIVE_APPDATA)) {
-        throw new ErrorDrive('error.drive.permiso', { requiereReconectar: true });
-      }
-      datos = ampliada.data;
-    }
-    return { email: datos.user.email };
-  } catch (error) {
-    if (error instanceof ErrorDrive) throw error;
-    if (isErrorWithCode(error) && (error.code === statusCodes.IN_PROGRESS || error.code === statusCodes.SIGN_IN_CANCELLED)) {
-      return null;
-    }
-    throw new ErrorDrive('error.drive.conectar');
+/** Traduce un fallo del módulo nativo a un error que se puede mostrar. */
+function errorDeAutorizacion(error: unknown, alConectar: boolean): ErrorDrive {
+  switch (codigoDeError(error)) {
+    case 'NECESITA_PERMISO':
+      return new ErrorDrive('error.drive.sin_sesion', { requiereReconectar: true });
+    case 'RED':
+      return new ErrorDrive('error.drive.red');
+    case 'CONFIGURACION':
+      return new ErrorDrive('error.drive.configuracion');
+    default:
+      return alConectar ? new ErrorDrive('error.drive.conectar') : new ErrorDrive('error.drive.red');
   }
 }
 
-/** Cierra la sesión de Google en este dispositivo. No borra la copia que ya está en Drive. */
-export async function desconectarCuenta(): Promise<void> {
-  configurar();
-  await GoogleSignin.signOut();
-}
-
 /**
- * Token de acceso vigente. Tras reiniciar la app hay que restaurar antes la sesión de Google (`signInSilently`);
- * si Google ya no la reconoce, el usuario debe volver a conectar la cuenta.
+ * Acceso a la cuenta de Google con `AuthorizationClient` (Google Identity Services, módulo local
+ * `modules/autorizacion-google`). No hay «inicio de sesión»: solo se pide permiso para la carpeta oculta de la app en
+ * Drive, y Google entrega un token de acceso que renueva solo mientras el permiso siga dado.
  */
-export async function obtenerTokenDeAcceso(): Promise<string> {
-  configurar();
-  if (!GoogleSignin.getCurrentUser()) {
-    let restaurada;
+export function crearAccesoGoogle(modulo: ModuloAutorizacion | null, fetchFn: typeof fetch = fetch): AccesoGoogle {
+  const usar = (): ModuloAutorizacion => {
+    if (!modulo) throw new ErrorDrive('error.drive.conectar');
+    return modulo;
+  };
+
+  async function leerCorreo(token: string): Promise<string> {
+    let respuesta: Response;
     try {
-      restaurada = await GoogleSignin.signInSilently();
+      respuesta = await fetchConTiempoMaximo(fetchFn, URL_USUARIO, { headers: { Authorization: `Bearer ${token}` } });
     } catch {
       throw new ErrorDrive('error.drive.red');
     }
-    if (restaurada.type !== 'success') {
-      throw new ErrorDrive('error.drive.sin_sesion', { requiereReconectar: true });
-    }
+    if (!respuesta.ok) throw new ErrorDrive('error.drive.conectar');
+    const datos = (await respuesta.json()) as { user?: { emailAddress?: unknown } };
+    const correo = datos.user?.emailAddress;
+    if (typeof correo !== 'string' || correo === '') throw new ErrorDrive('error.drive.conectar');
+    return correo;
   }
-  try {
-    return (await GoogleSignin.getTokens()).accessToken;
-  } catch (error) {
-    if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_REQUIRED) {
-      throw new ErrorDrive('error.drive.sin_sesion', { requiereReconectar: true });
-    }
-    throw new ErrorDrive('error.drive.red');
-  }
+
+  return {
+    async conectarCuenta() {
+      let autorizacion;
+      try {
+        autorizacion = await usar().autorizar(SCOPES, true);
+      } catch (error) {
+        if (error instanceof ErrorDrive) throw error;
+        if (codigoDeError(error) === 'CANCELADO' || codigoDeError(error) === 'EN_CURSO') return null;
+        throw errorDeAutorizacion(error, true);
+      }
+      if (!autorizacion) return null; // cerró la pantalla de Google
+      if (!autorizacion.scopes.includes(SCOPE_DRIVE_APPDATA)) {
+        throw new ErrorDrive('error.drive.permiso', { requiereReconectar: true });
+      }
+      return { email: await leerCorreo(autorizacion.token) };
+    },
+
+    async desconectarCuenta(email) {
+      if (!email || !modulo) return;
+      await modulo.revocar(email, SCOPES);
+    },
+
+    async obtenerTokenDeAcceso() {
+      let autorizacion;
+      try {
+        autorizacion = await usar().autorizar(SCOPES, false);
+      } catch (error) {
+        if (error instanceof ErrorDrive) throw error;
+        throw errorDeAutorizacion(error, false);
+      }
+      if (!autorizacion) throw new ErrorDrive('error.drive.sin_sesion', { requiereReconectar: true });
+      return autorizacion.token;
+    },
+
+    async descartarToken(token) {
+      try {
+        await modulo?.limpiarToken(token);
+      } catch {
+        // Si no se pudo limpiar, el reintento fallará y se reportará como permiso.
+      }
+    },
+  };
 }
 
-/** Google rechazó este token: se descarta de la caché para que `getTokens` pida uno nuevo. */
-export async function descartarToken(token: string): Promise<void> {
-  configurar();
-  try {
-    await GoogleSignin.clearCachedAccessToken(token);
-  } catch {
-    // Si no se pudo limpiar, el reintento fallará y se reportará como permiso.
-  }
-}
+/** El acceso real (sin módulo nativo, p. ej. en la web, todo falla con «no se pudo conectar»). */
+export const accesoGoogle = crearAccesoGoogle(moduloAutorizacion);

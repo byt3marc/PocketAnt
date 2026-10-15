@@ -11,6 +11,7 @@ import {
 import { AppState, Linking, Platform } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
+import { useDialogo } from '@/componentes/DialogoProvider';
 import { useDatos } from '@/datos/DatosProvider';
 import { leerDatosNotificacion, planificarNotificaciones } from '@/dominio/planNotificaciones';
 
@@ -26,6 +27,13 @@ interface ContextoNotificaciones {
   permiso: EstadoPermiso | null;
   /** Muestra el aviso de permiso del sistema. */
   pedirPermiso: () => Promise<void>;
+  /** Pide el permiso solo si aún se puede preguntar: al encender un aviso en Ajustes. */
+  pedirPermisoSiHaceFalta: () => Promise<void>;
+  /**
+   * Tras guardar un gasto recurrente: la primera vez (y si aún no hay permiso) pregunta con un diálogo propio si quiere
+   * avisos antes de cada cobro y, si dice que sí, muestra el del sistema. No vuelve a preguntar.
+   */
+  ofrecerAvisosDeCobros: () => void;
   /** Abre los ajustes de la app en el sistema (para quien rechazó el permiso). */
   abrirAjustesDelSistema: () => void;
 }
@@ -33,13 +41,15 @@ interface ContextoNotificaciones {
 const Contexto = createContext<ContextoNotificaciones | null>(null);
 
 /**
- * Mantiene programadas las notificaciones (recordatorios y avisos de cobros) acordes con los datos y los
- * ajustes, pide el permiso la primera vez y lleva al usuario a la pantalla correcta al tocar un aviso.
- * Debe montarse dentro de la navegación y de los proveedores de ajustes y datos.
+ * Mantiene programadas las notificaciones (recordatorios y avisos de cobros) acordes con los datos y los ajustes y lleva
+ * al usuario a la pantalla correcta al tocar un aviso. El permiso no se pide al abrir la app (sin contexto, la mayoría
+ * lo rechaza): se pide al encender un aviso o se ofrece tras guardar el primer gasto recurrente.
+ * Debe montarse dentro de la navegación y de los proveedores de ajustes, diálogos y datos.
  */
 export function NotificacionesProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { ajustes, i18n, formatear, cambiarNotificaciones } = useAjustes();
+  const { alerta } = useDialogo();
   const { movimientos, cargando } = useDatos();
   const [permiso, setPermiso] = useState<EstadoPermiso | null>(null);
   // Sube cada vez que la app vuelve a primer plano: el permiso pudo cambiar en los ajustes del sistema.
@@ -53,27 +63,34 @@ export function NotificacionesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const pedirPermiso = async () => {
+    if (!ajustes.notificaciones.permisoPreguntado) cambiarNotificaciones({ permisoPreguntado: true });
     setPermiso(await solicitarPermiso(i18n.t('notif.canal')));
   };
 
-  // Al leer el permiso del sistema: si es la primera vez y todavía se puede preguntar, se muestra el aviso
-  // del sistema una sola vez (si el usuario lo rechaza, no se insiste; puede activarlo desde Ajustes).
-  const alLeerPermiso = useEffectEvent(async (estado: EstadoPermiso) => {
-    setPermiso(estado);
-    if (estado === 'pendiente' && !cargando && !ajustes.notificaciones.permisoPreguntado) {
-      cambiarNotificaciones({ permisoPreguntado: true });
-      await pedirPermiso();
-    }
-  });
+  const pedirPermisoSiHaceFalta = async () => {
+    if (permiso === 'pendiente') await pedirPermiso();
+  };
+
+  const ofrecerAvisosDeCobros = () => {
+    const notificaciones = ajustes.notificaciones;
+    if (permiso !== 'pendiente' || notificaciones.permisoPreguntado || !notificaciones.cobros.activo) return;
+    cambiarNotificaciones({ permisoPreguntado: true });
+    alerta(i18n.t('notif.ofrecer_titulo'), i18n.t('notif.ofrecer_mensaje'), [
+      { text: i18n.t('notif.ofrecer_no'), style: 'cancel' },
+      { text: i18n.t('notif.ofrecer_si'), onPress: () => void pedirPermiso() },
+    ]);
+  };
+
+  // El permiso pudo cambiar en los ajustes del sistema: se vuelve a leer al volver a la app.
   useEffect(() => {
     let vigente = true;
     leerPermiso().then((estado) => {
-      if (vigente) void alLeerPermiso(estado);
+      if (vigente) setPermiso(estado);
     });
     return () => {
       vigente = false;
     };
-  }, [refresco, cargando]);
+  }, [refresco]);
 
   const reprogramar = useEffectEvent(async () => {
     if (permiso !== 'concedido') {
@@ -129,6 +146,8 @@ export function NotificacionesProvider({ children }: { children: ReactNode }) {
   const valor: ContextoNotificaciones = {
     permiso,
     pedirPermiso,
+    pedirPermisoSiHaceFalta,
+    ofrecerAvisosDeCobros,
     abrirAjustesDelSistema: () => {
       void Linking.openSettings();
     },

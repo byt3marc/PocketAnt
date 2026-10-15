@@ -89,8 +89,12 @@ interface Props {
   children: ReactNode;
 }
 
-/** Cada cuánto se refresca la notificación de progreso como máximo (más seguido solo gasta batería). */
-const INTERVALO_NOTIFICACION_MS = 1000;
+/**
+ * Cada cuánto se publica el progreso como máximo, en la tarjeta y en la notificación. La descarga avisa ~10 veces por
+ * segundo: publicar cada aviso volvería a pintar Ajustes, Análisis y la tarjeta sin que se note (la barra ya avanza
+ * sola entre dato y dato) y gastaría batería.
+ */
+const INTERVALO_PROGRESO_MS = 1000;
 
 function faseDeEvaluacion(evaluacion: EvaluacionIA): FaseIA {
   if (!evaluacion.compatible) return 'no-compatible';
@@ -164,30 +168,33 @@ export function IAProvider({ servicio: servicioPropio, segundoPlano = segundoPla
         hecho: formatearTamano(tamano * fraccion),
         total: formatearTamano(tamano),
       });
-    segundoPlano.iniciar({
-      titulo: i18n.t('ia.noti_titulo'),
-      texto: textoProgreso(estado.progreso),
-      pausar: i18n.t('ia.pausar'),
-      cancelar: i18n.t('ia.cancelar_corto'),
-      canalProgreso: i18n.t('ia.noti_canal_progreso'),
-      canalResultado: i18n.t('ia.noti_canal_resultado'),
-    });
+    try {
+      segundoPlano.iniciar({
+        titulo: i18n.t('ia.noti_titulo'),
+        texto: textoProgreso(estado.progreso),
+        pausar: i18n.t('ia.pausar'),
+        cancelar: i18n.t('ia.cancelar_corto'),
+        canalProgreso: i18n.t('ia.noti_canal_progreso'),
+        canalResultado: i18n.t('ia.noti_canal_resultado'),
+      });
+    } catch {
+      // Sin el servicio en primer plano la descarga sigue igual mientras la app esté abierta.
+    }
     const dejarDeEscuchar = segundoPlano.alAccion((accion) =>
       accion === 'pausar' ? void pausarDescarga() : void cancelarDescarga(),
     );
-    let ultimaNotificacion = 0;
+    let ultimoProgreso = 0;
     // Lo que se le cuenta al usuario al terminar; `null` = nada (lo canceló él mismo).
     let final: { titulo: ClaveTexto; texto: ClaveTexto } | null = null;
 
     try {
       const resultado = await servicio.descargar(
         (fraccion) => {
-          setEstado((actual) => (actual.fase === 'descargando' ? { ...actual, progreso: fraccion } : actual));
           const ahora = Date.now();
-          if (ahora - ultimaNotificacion >= INTERVALO_NOTIFICACION_MS) {
-            ultimaNotificacion = ahora;
-            segundoPlano.actualizar(fraccion, textoProgreso(fraccion));
-          }
+          if (ahora - ultimoProgreso < INTERVALO_PROGRESO_MS) return;
+          ultimoProgreso = ahora;
+          setEstado((actual) => (actual.fase === 'descargando' ? { ...actual, progreso: fraccion } : actual));
+          segundoPlano.actualizar(fraccion, textoProgreso(fraccion));
         },
         () => {
           setEstado((actual) => ({ ...actual, fase: 'verificando', progreso: 1 }));

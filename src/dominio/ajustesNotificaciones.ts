@@ -18,12 +18,16 @@ export interface AjustesNotificaciones {
     /** Días de anticipación (0 = el mismo día del cobro). */
     diasAntes: number;
   };
-  /** Ya se mostró el permiso del sistema una vez (no se vuelve a pedir solo). */
+  /** Ya se pidió el permiso (o se ofreció tras el primer gasto recurrente): la app no vuelve a sacarlo sola. */
   permisoPreguntado: boolean;
 }
 
+/**
+ * El recordatorio viene apagado: ~15 avisos al día sin haberlos pedido es motivo de desinstalación. Lo enciende quien
+ * lo quiera (en Ajustes). Los avisos de cobros sí vienen encendidos: solo suenan si hay gastos recurrentes.
+ */
 export const NOTIFICACIONES_POR_DEFECTO: AjustesNotificaciones = {
-  recordatorio: { activo: true, cadaHoras: 1, desde: 8, hasta: 22 },
+  recordatorio: { activo: false, cadaHoras: 1, desde: 8, hasta: 22 },
   cobros: { activo: true, diasAntes: 3 },
   permisoPreguntado: false,
 };

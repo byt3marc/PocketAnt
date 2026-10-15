@@ -129,7 +129,7 @@ describe('BloqueDia', () => {
   // Fechas relativas a hoy: el componente usa el día real, así que la prueba no depende de cuándo se corra.
   const hoyMasDias = (dias: number) => sumarDias(hoy(), dias);
 
-  it('muestra lo de hoy y compara los gastos con ayer', async () => {
+  it('muestra lo de hoy y el balance del día: arriba, en verde', async () => {
     await render(
       conAjustes(
         <BloqueDia
@@ -137,7 +137,7 @@ describe('BloqueDia', () => {
           movimientos={[
             movimiento({ id: 'a', tipo: 'ingreso', monto: 120, fecha: hoy() }),
             movimiento({ id: 'b', monto: 45, fecha: hoy() }),
-            movimiento({ id: 'c', monto: 75, fecha: hoyMasDias(-1) }),
+            movimiento({ id: 'c', monto: 75, fecha: hoyMasDias(-1) }), // ayer: no cuenta para hoy
           ]}
         />,
       ),
@@ -146,33 +146,37 @@ describe('BloqueDia', () => {
     expect(screen.getByText('Hoy')).toBeTruthy();
     expect(screen.getByText('$120.00')).toBeTruthy();
     expect(screen.getByText('$45.00')).toBeTruthy();
-    expect(screen.getByText('▼ $30.00 vs ayer')).toBeTruthy();
+    expect(screen.getByText('Vas $75.00 arriba hoy')).toBeTruthy();
+    expect(screen.getByTestId('balance-trending-up')).toBeTruthy();
+    expect(screen.queryByText(/vs ayer/)).toBeNull();
   });
 
-  it('avisa si gastó más o lo mismo que ayer', async () => {
+  it('abajo en rojo si se gastó más de lo que entró, y «a la par» si quedó igual', async () => {
     const { rerender } = await render(
       conAjustes(
         <BloqueDia
           movimientos={[
-            movimiento({ id: 'a', monto: 50, fecha: hoy() }),
-            movimiento({ id: 'b', monto: 20, fecha: hoyMasDias(-1) }),
+            movimiento({ id: 'a', tipo: 'ingreso', monto: 20, fecha: hoy() }),
+            movimiento({ id: 'b', monto: 50, fecha: hoy() }),
           ]}
         />,
       ),
     );
-    expect(screen.getByText('▲ $30.00 vs ayer')).toBeTruthy();
+    expect(screen.getByText('Vas $30.00 abajo hoy')).toBeTruthy();
+    expect(screen.getByTestId('balance-trending-down')).toBeTruthy();
 
     await rerender(
       conAjustes(
         <BloqueDia
           movimientos={[
-            movimiento({ id: 'a', monto: 20, fecha: hoy() }),
-            movimiento({ id: 'b', monto: 20, fecha: hoyMasDias(-1) }),
+            movimiento({ id: 'a', tipo: 'ingreso', monto: 20, fecha: hoy() }),
+            movimiento({ id: 'b', monto: 20, fecha: hoy() }),
           ]}
         />,
       ),
     );
-    expect(screen.getByText('Igual gasto que ayer')).toBeTruthy();
+    expect(screen.getByText('Hoy vas a la par')).toBeTruthy();
+    expect(screen.getByTestId('balance-remove')).toBeTruthy();
   });
 
   it('distingue «hoy sin movimientos» de «la app está vacía»', async () => {
@@ -204,6 +208,8 @@ describe('BloqueDia', () => {
     expect(screen.getByText('Ayer')).toBeTruthy();
     expect(screen.getByText('Taxi')).toBeTruthy();
     expect(screen.getByText('$8.00')).toBeTruthy();
+    // Para un día pasado, en pasado.
+    expect(screen.getByText('Terminaste $8.00 abajo')).toBeTruthy();
     expect(atras).toBeDisabled(); // no hay nada más viejo
     expect(adelante).toBeEnabled();
   });
@@ -253,23 +259,24 @@ describe('VistaPreviaHistorial', () => {
   const muchos = (cantidad: number) =>
     Array.from({ length: cantidad }, (_, i) => movimiento({ id: `m${i}`, motivo: `Gasto ${i + 1}` }));
 
-  it('muestra solo los más recientes y cierra con «Gráficas e Historial»', async () => {
+  it('muestra solo los más recientes y termina en el último, sin repetir «Gráficas e Historial»', async () => {
     await render(conAjustes(<VistaPreviaHistorial movimientos={muchos(15)} onAbrir={jest.fn()} />));
 
     expect(MAX_FILAS_VISTA_PREVIA).toBe(12);
     expect(screen.getByText('Gasto 1')).toBeTruthy();
     expect(screen.getByText(`Gasto ${MAX_FILAS_VISTA_PREVIA}`)).toBeTruthy();
     expect(screen.queryByText(`Gasto ${MAX_FILAS_VISTA_PREVIA + 1}`)).toBeNull();
-    expect(screen.getByText('Gráficas e Historial')).toBeTruthy();
-    expect(screen.getByText('Ver más')).toBeTruthy();
+    // El enlace ya está en la tarjeta de encima, en el Home: aquí no se repite.
+    expect(screen.queryByText('Gráficas e Historial')).toBeNull();
+    expect(screen.queryByText('Ver más')).toBeNull();
   });
 
-  it('tocar una fila o el cierre abre Gráficas e Historial', async () => {
+  it('tocar una fila abre Gráficas e Historial', async () => {
     const alAbrir = jest.fn();
     await render(conAjustes(<VistaPreviaHistorial movimientos={muchos(2)} onAbrir={alAbrir} />));
 
+    await fireEvent.press(screen.getByText('Gasto 1'));
     await fireEvent.press(screen.getByText('Gasto 2'));
-    await fireEvent.press(screen.getByText('Gráficas e Historial'));
     expect(alAbrir).toHaveBeenCalledTimes(2);
   });
 

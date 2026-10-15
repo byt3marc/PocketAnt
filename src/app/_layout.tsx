@@ -134,6 +134,7 @@ function Navegacion() {
             />
             <Stack.Screen name="ajustes" options={{ title: i18n.t('nav.ajustes') }} />
             <Stack.Screen name="moneda" options={{ title: i18n.t('nav.moneda') }} />
+            <Stack.Screen name="privacidad" options={{ title: i18n.t('nav.privacidad') }} />
           </Stack>
         </NotificacionesProvider>
       </SincronizacionProvider>

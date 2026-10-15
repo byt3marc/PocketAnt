@@ -8,12 +8,20 @@ export const RAM_MINIMA_ETIQUETA = '4 GB';
 /** Entre el mínimo y esto se ofrece, pero avisando de que va justo (un «6 GB» marca ~5.5e9). */
 export const RAM_HOLGADA_BYTES = 5_400_000_000;
 
+export interface FormularioReportes {
+  /** La dirección para enviar respuestas: `https://docs.google.com/forms/d/e/<ID>/formResponse`. */
+  url: string;
+  /** El campo de la pregunta de párrafo: `entry.<número>` (sale del enlace «prellenado» del formulario). */
+  campo: string;
+}
+
 /**
- * Correo al que se envía una respuesta de la IA reportada. Vacío = el reporte solo oculta la respuesta en el
- * teléfono. Antes de publicar en Google Play hay que poner aquí un canal real (la política de contenido
- * generado por IA pide poder reportar dentro de la app).
+ * Formulario de Google Forms que recibe las respuestas de la IA que el usuario reporta. Google Play exige que se pueda
+ * reportar contenido generado por IA **sin salir de la app**: la app rellena el formulario por detrás y los reportes
+ * llegan a la hoja de cálculo del formulario. Vacío = reportar solo oculta la respuesta en el teléfono.
+ * **Antes de publicar en Google Play hay que rellenarlo** (pasos en Info.md, «Reportes de la IA»).
  */
-export const CORREO_REPORTES = '';
+export const FORMULARIO_REPORTES: FormularioReportes = { url: '', campo: '' };
 
 /**
  * El modelo que se ofrece: Gemma 4 E2B en formato LiteRT-LM (el nombre se muestra igual en todos los idiomas).

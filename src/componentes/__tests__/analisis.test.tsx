@@ -4,8 +4,9 @@ import { useEffect, useEffectEvent, type ReactElement } from 'react';
 import { AjustesProvider } from '@/ajustes/AjustesProvider';
 import { analizar } from '@/dominio/analisis';
 import type { Movimiento } from '@/dominio/tipos';
+import { FORMULARIO_REPORTES } from '@/ia/config';
 import { IAProvider, useIA } from '@/ia/IAProvider';
-import { crearServicioFalso, type OpcionesServicioFalso } from '@/ia/servicioFalso';
+import { crearServicioFalso, type OpcionesServicioFalso } from '@/pruebas/servicioIAFalso';
 import type { EvaluacionIA } from '@/ia/tipos';
 
 import { AnalisisReglas } from '../AnalisisReglas';
@@ -16,6 +17,11 @@ import { DialogoProvider } from '../DialogoProvider';
 jest.mock('@/ajustes/almacen', () => ({
   leerAjustes: () => ({ tema: 'claro', moneda: 'USD', tipoGrafica: 'linea', idioma: 'es' }),
   guardarAjustes: jest.fn(),
+}));
+// El formulario de reportes es un objeto propio de las pruebas: cada una lo configura (o no) a su gusto.
+jest.mock('@/ia/config', () => ({
+  ...jest.requireActual('@/ia/config'),
+  FORMULARIO_REPORTES: { url: '', campo: '' },
 }));
 
 jest.useFakeTimers();
@@ -123,6 +129,14 @@ describe('BloqueIA', () => {
     expect(
       screen.getByText('Tu teléfono tiene 3 GB de RAM y la IA necesita al menos 4 GB. Seguirás viendo el análisis normal.'),
     ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Descargar modelo' })).toBeNull();
+  });
+
+  it('en un procesador de 32 bits lo explica y no ofrece descargar', async () => {
+    await montar(<BloqueIA hechos={hechos} />, {
+      evaluacion: { compatible: false, motivo: 'procesador', ramBytes: 4_000_000_000 },
+    });
+    expect(screen.getByText(/necesita uno de 64 bits/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Descargar modelo' })).toBeNull();
   });
 
@@ -254,11 +268,60 @@ describe('BloqueIA', () => {
     expect(screen.getByText('Generado en tu teléfono. Información orientativa, no es asesoría financiera.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Actualizar informe' })).toBeTruthy();
 
+    // Sin formulario configurado: solo se oculta, y no se dice que se haya enviado nada.
     await fireEvent.press(screen.getByRole('button', { name: 'Reportar respuesta' }));
     expect(screen.getByText('¿Reportar esta respuesta?')).toBeTruthy();
+    expect(screen.getByText(/Se ocultará de la pantalla/)).toBeTruthy();
     await pulsarDialogo('Reportar');
-    expect(screen.getByText('Gracias por avisar. Ocultamos esa respuesta.')).toBeTruthy();
+    expect(screen.getByText('Ocultamos esa respuesta.')).toBeTruthy();
+    expect(screen.queryByText(/Gracias por avisar/)).toBeNull();
     expect(screen.queryByText('Resumen corto.')).toBeNull();
+  });
+
+  describe('reportar con el formulario de Google Forms configurado', () => {
+    const fetchOriginal = globalThis.fetch;
+    const mockFetch = jest.fn();
+    beforeEach(() => {
+      Object.assign(FORMULARIO_REPORTES, { url: 'https://docs.google.com/forms/d/e/X/formResponse', campo: 'entry.7' });
+      mockFetch.mockReset();
+      globalThis.fetch = mockFetch as unknown as typeof fetch;
+    });
+    afterEach(() => {
+      Object.assign(FORMULARIO_REPORTES, { url: '', campo: '' });
+      globalThis.fetch = fetchOriginal;
+    });
+
+    const generarYReportar = async () => {
+      await montar(<BloqueIA hechos={hechos} />, {
+        evaluacion: compatible({ descargado: true }),
+        informe: 'Resumen corto.\n• Una idea.',
+      });
+      await fireEvent.press(screen.getByRole('button', { name: 'Generar informe' }));
+      await avanzar(500);
+      await fireEvent.press(screen.getByRole('button', { name: 'Reportar respuesta' }));
+      // El diálogo dice qué se envía antes de enviarlo.
+      expect(screen.getByText(/Se enviará solo el texto de esta respuesta/)).toBeTruthy();
+      await pulsarDialogo('Reportar');
+      await avanzar(10);
+    };
+
+    it('envía la respuesta sin salir de la app, la oculta y da las gracias', async () => {
+      mockFetch.mockResolvedValue({ ok: true, status: 200 });
+      await generarYReportar();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [url, init] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://docs.google.com/forms/d/e/X/formResponse');
+      expect(new URLSearchParams(init.body).get('entry.7')).toContain('Resumen corto.');
+      expect(screen.getByText('Gracias por avisar: recibimos tu reporte y ocultamos esa respuesta.')).toBeTruthy();
+      expect(screen.queryByText('Resumen corto.')).toBeNull();
+    });
+
+    it('sin conexión lo dice, y la respuesta se oculta igual', async () => {
+      mockFetch.mockRejectedValue(new TypeError('Network request failed'));
+      await generarYReportar();
+      expect(screen.getByText(/No se pudo enviar el reporte/)).toBeTruthy();
+      expect(screen.queryByText('Resumen corto.')).toBeNull();
+    });
   });
 
   it('desde la tarjeta se puede eliminar el modelo, con confirmación', async () => {

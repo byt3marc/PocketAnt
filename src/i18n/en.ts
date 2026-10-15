@@ -56,6 +56,7 @@ export const en: Record<ClaveTexto, string> = {
   'nav.estadisticas': 'Charts & History',
   'nav.movimiento': 'Entry',
   'nav.ajustes': 'Settings',
+  'nav.privacidad': 'Privacy',
   'nav.moneda': 'Currency',
 
   // — Balance and charts —
@@ -67,11 +68,12 @@ export const en: Record<ClaveTexto, string> = {
   'grafica.sin_movimientos_periodo': 'No entries in this period',
   'grafica.esqueleto': 'No entries yet',
   'dia.sin_movimientos_hoy': 'No entries today',
-  'dia.menos': '▼ {monto} vs {ref}',
-  'dia.mas': '▲ {monto} vs {ref}',
-  'dia.igual': 'Same spending as {ref}',
-  'dia.ref_ayer': 'yesterday',
-  'dia.ref_anterior': 'the previous day',
+  'dia.arriba_hoy': "You're {monto} up today",
+  'dia.abajo_hoy': "You're {monto} down today",
+  'dia.par_hoy': "You're even today",
+  'dia.arriba': 'Ended {monto} up',
+  'dia.abajo': 'Ended {monto} down',
+  'dia.par': 'Ended even',
   'tooltip.ingresos': '▲ Income',
   'tooltip.gastos': '▼ Expenses',
   'tooltip.sin_movimientos': 'No entries',
@@ -97,7 +99,6 @@ export const en: Record<ClaveTexto, string> = {
   'inicio.titulo_7': '7 days',
   'inicio.enlace_titulo': 'Charts & History',
   'inicio.enlace_accesible': 'View charts and history',
-  'inicio.ver_mas': 'See more',
   'inicio.enlace_vacio': 'Your entries will show up here in detail',
   'inicio.enlace_detalle_uno': '{n} entry · see details',
   'inicio.enlace_detalle_otros': '{n} entries · see details',
@@ -176,12 +177,9 @@ export const en: Record<ClaveTexto, string> = {
   'ajustes.importar_desc': 'Merges a JSON file with your current data; nothing is deleted.',
   'ajustes.acerca': 'About',
   'ajustes.acerca_desc':
-    'Your data is stored on this device. If you connect Google Drive, it is also kept in a private folder of your account. We run no servers of our own.',
+    'Your data is stored on this device. No accounts, ads or analytics, and no servers of our own.',
 
   // — Google Drive —
-  'drive.titulo': 'Google Drive',
-  'drive.pendiente_config': 'Setup pending',
-  'drive.pendiente_desc': 'Google access still needs to be configured in the app.',
   'drive.conectar': 'Connect Google Drive',
   'drive.conectar_desc': 'Back up and sync your data to a private folder in your Drive.',
   'drive.conectado_como': 'Connected as {email}',
@@ -200,6 +198,8 @@ export const en: Record<ClaveTexto, string> = {
   'drive.hora': '{dia}, {hora}',
   'error.drive.conectar': 'Could not connect to Google. Please try again.',
   'error.drive.sin_sesion': 'Your Google session expired. Reconnect your account.',
+  'error.drive.configuracion':
+    "This copy of the app isn't registered with Google (package or signature). It needs to be set up in Google Cloud.",
   'error.drive.red': 'No connection to Google. It will be retried later.',
   'error.drive.permiso': 'Google did not authorize access to Drive. Reconnect your account.',
   'error.drive.servicio': 'Google Drive returned an error ({codigo}). It will be retried later.',
@@ -228,6 +228,11 @@ export const en: Record<ClaveTexto, string> = {
   'notif.cobro_hoy': '{motivo} is charged today · {monto}',
   'notif.cobro_manana': '{motivo} is charged tomorrow · {monto}',
   'notif.cobro_dias': '{motivo} is charged in {n} days ({fecha}) · {monto}',
+  'notif.ofrecer_titulo': 'Get a heads-up before each charge?',
+  'notif.ofrecer_mensaje':
+    "We'll remind you a few days before each recurring expense, like this one, is charged. You can change this anytime in Settings.",
+  'notif.ofrecer_no': 'Not now',
+  'notif.ofrecer_si': 'Turn on',
 
   // — Notifications: settings —
   'ajustes.notif_seccion': 'Notifications',
@@ -360,11 +365,18 @@ export const en: Record<ClaveTexto, string> = {
   'ia.pie': 'Generated on your phone. For guidance only, not financial advice.',
   'ia.reportar': 'Report response',
   'ia.reportar_titulo': 'Report this response?',
-  'ia.reportar_mensaje': 'Use it if the response is offensive, harmful or clearly wrong.',
+  'ia.reportar_mensaje':
+    'Use it if the response is offensive, harmful or clearly wrong. Only the text of this response (it may include your spending figures) will be sent for review.',
+  'ia.reportar_mensaje_local': 'Use it if the response is offensive, harmful or clearly wrong. It will be hidden from the screen.',
   'ia.reportar_enviar': 'Report',
-  'ia.reportar_gracias': 'Thanks for letting us know. We hid that response.',
+  'ia.reportar_gracias': 'Thanks for letting us know: we got your report and hid that response.',
+  'ia.reportar_enviando': 'Sending the report…',
+  'ia.reportar_fallo': "Couldn't send the report (no connection?). We hid that response anyway.",
+  'ia.reportar_oculta': 'We hid that response.',
   'ia.no_compatible_ram': 'Your phone has {ram} of RAM and the AI needs at least {minimo}. You will still see the regular analysis.',
   'ia.no_compatible_plataforma': 'Local AI is only available on Android for now. You will still see the regular analysis.',
+  'ia.no_compatible_procesador':
+    "This phone's processor can't run the AI model (it needs a 64-bit one). You will still see the regular analysis.",
   'ia.no_compatible_generico': 'This phone cannot run the AI model. You will still see the regular analysis.',
   'ia.error_descarga': 'The download was interrupted. What you downloaded is kept: check your connection and resume.',
   'ia.error_disco': 'There is not enough space for the model.',
@@ -391,9 +403,10 @@ export const en: Record<ClaveTexto, string> = {
   'ajustes.ia_estado_pausada': 'Paused · {porcentaje}%',
   'ajustes.ia_descartar_desc': 'Deletes what was downloaded of the model to free up space.',
   'ajustes.ia_estado_no_compatible': 'Not compatible with this phone',
-  'ajustes.ia_abrir': 'Open Analysis',
   'ajustes.ia_eliminar': 'Delete model',
   'ajustes.ia_eliminar_desc': 'Frees {tamano} of space. You can download it again.',
   'ajustes.ia_eliminar_titulo': 'Delete the model?',
   'ajustes.acerca_licencias': 'Google’s Gemma 4 model (Apache 2.0 license), LiteRT-LM engine (Apache 2.0) and expo-ai-kit (MIT).',
+  'ajustes.privacidad': 'Privacy policy',
+  'ajustes.privacidad_desc': 'What data the app uses and where it is stored.',
 };

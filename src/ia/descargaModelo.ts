@@ -35,7 +35,7 @@ export interface ArchivosModelo {
   tamanoParcial: () => number;
   borrarParcial: () => void;
   /** MD5 del archivo parcial, o `null` si no se pudo calcular. */
-  md5Parcial: () => string | null;
+  md5Parcial: () => Promise<string | null>;
   /** Mueve el parcial a su lugar definitivo. */
   promoverParcial: () => void;
   /** `desde` bytes ya descargados: 0 empieza de cero y más de 0 continúa con una petición `Range`. */
@@ -76,7 +76,7 @@ export interface Descarga {
   descartar: () => void;
 }
 
-/** Deja que la pantalla se repinte antes de un trabajo largo que bloquea el hilo de JavaScript (el MD5). */
+/** Deja que la pantalla se repinte antes del MD5 (si no hay módulo nativo, bloquea el hilo de JavaScript). */
 const cederPasoPorDefecto = () => new Promise<void>((resolver) => setTimeout(resolver, 60));
 
 export function crearDescarga(
@@ -132,7 +132,7 @@ export function crearDescarga(
       }
       onVerificando?.();
       await cederPaso();
-      if (tamano > espec.tamanoBytes || archivos.md5Parcial()?.toLowerCase() !== espec.md5.toLowerCase()) {
+      if (tamano > espec.tamanoBytes || (await archivos.md5Parcial())?.toLowerCase() !== espec.md5.toLowerCase()) {
         archivos.borrarParcial();
         throw new ErrorDescarga('DOWNLOAD_CORRUPT');
       }

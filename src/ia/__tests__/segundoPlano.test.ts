@@ -1,4 +1,6 @@
-import { crearSegundoPlanoFalso, segundoPlanoNativo } from '../segundoPlano';
+import { crearSegundoPlanoFalso } from '@/pruebas/segundoPlanoFalso';
+
+import { segundoPlanoNativo } from '../segundoPlano';
 
 const TEXTOS = {
   titulo: 't',

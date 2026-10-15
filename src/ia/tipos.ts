@@ -11,7 +11,7 @@ export interface InfoModelo {
   tamanoBytes: number;
 }
 
-export type MotivoNoCompatible = 'plataforma' | 'ram' | 'generico';
+export type MotivoNoCompatible = 'plataforma' | 'procesador' | 'ram' | 'generico';
 
 /** Lo que se sabe del teléfono y del modelo antes de ofrecer la descarga. */
 export type EvaluacionIA =

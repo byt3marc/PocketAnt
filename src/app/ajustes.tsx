@@ -19,8 +19,9 @@ import { SelectorSegmentado, type OpcionSegmento } from '@/componentes/SelectorS
 import { Tarjeta } from '@/componentes/Tarjeta';
 import { Texto } from '@/componentes/Texto';
 import { useDatos } from '@/datos/DatosProvider';
+import { formatearHora } from '@/dominio/fechas';
 import { formatearTamano } from '@/dominio/formato';
-import { useIA } from '@/ia/IAProvider';
+import { useIA, type EstadoIA } from '@/ia/IAProvider';
 import type { ResultadoImportacion } from '@/datos/sincronizacion/servicio';
 import { MAX_DIAS_ANTES, OPCIONES_INTERVALO_HORAS } from '@/dominio/ajustesNotificaciones';
 import { MONEDA_AUTOMATICA } from '@/dominio/moneda';
@@ -41,6 +42,24 @@ function resumirImportacion(r: ResultadoImportacion, i18n: I18n): string {
     r.descartados > 0 && i18n.plural('importar.descartados', r.descartados),
   ].filter(Boolean);
   return lineas.length > 0 ? lineas.join('\n') : i18n.t('ajustes.importacion_vacia');
+}
+
+/** Lo que se ve a la derecha de la fila de la IA: el estado del modelo en pocas palabras. */
+function textoEstadoIA(estado: EstadoIA, tamanoBytes: number, i18n: I18n): string {
+  const porcentaje = Math.round(estado.progreso * 100);
+  switch (estado.fase) {
+    case 'no-compatible':
+      return i18n.t('ajustes.ia_estado_no_compatible');
+    case 'sin-descargar':
+      return i18n.t('ajustes.ia_estado_sin');
+    case 'descargando':
+    case 'verificando':
+      return i18n.t('ajustes.ia_estado_descargando', { porcentaje });
+    case 'pausada':
+      return i18n.t('ajustes.ia_estado_pausada', { porcentaje });
+    default:
+      return i18n.t('ajustes.ia_estado_descargado', { tamano: formatearTamano(tamanoBytes) });
+  }
 }
 
 /**
@@ -83,7 +102,7 @@ export default function Ajustes() {
   const relleno = useRelleno(true);
   const { ajustes, moneda, cambiarTema, cambiarIdioma, cambiarNotificaciones, i18n } = useAjustes();
   const { exportar, importar } = useDatos();
-  const { permiso, pedirPermiso, abrirAjustesDelSistema } = useNotificaciones();
+  const { permiso, pedirPermiso, pedirPermisoSiHaceFalta, abrirAjustesDelSistema } = useNotificaciones();
   const ia = useIA();
   const { alerta } = useDialogo();
   const alEntrar = useEffectEvent(() => void ia.refrescar());
@@ -97,7 +116,7 @@ export default function Ajustes() {
     valor: String(horas),
     etiqueta: i18n.t('ajustes.notif_hora_abrev', { n: horas }),
   }));
-  const formatoHora = (hora: number) => `${String(hora).padStart(2, '0')}:00`;
+  const formatoHora = (hora: number) => formatearHora(hora);
   const formatoAntelacion = (dias: number) =>
     dias === 0 ? i18n.t('ajustes.notif_antelacion_hoy') : i18n.plural('ajustes.notif_antelacion', dias);
 
@@ -216,7 +235,10 @@ export default function Ajustes() {
             titulo={i18n.t('ajustes.notif_recordatorio')}
             descripcion={i18n.t('ajustes.notif_recordatorio_desc')}
             valor={notif.recordatorio.activo}
-            onCambio={(activo) => cambiarNotificaciones({ recordatorio: { activo } })}
+            onCambio={(activo) => {
+              cambiarNotificaciones({ recordatorio: { activo } });
+              if (activo) void pedirPermisoSiHaceFalta();
+            }}
           />
           {notif.recordatorio.activo ? (
             <Revelar style={estilos.detalle}>
@@ -263,7 +285,10 @@ export default function Ajustes() {
             titulo={i18n.t('ajustes.notif_cobros')}
             descripcion={i18n.t('ajustes.notif_cobros_desc')}
             valor={notif.cobros.activo}
-            onCambio={(activo) => cambiarNotificaciones({ cobros: { activo } })}
+            onCambio={(activo) => {
+              cambiarNotificaciones({ cobros: { activo } });
+              if (activo) void pedirPermisoSiHaceFalta();
+            }}
           />
           {notif.cobros.activo ? (
             <Revelar style={estilos.filaEntre}>
@@ -289,17 +314,7 @@ export default function Ajustes() {
             icono="sparkles-outline"
             titulo={i18n.t('nav.analisis')}
             descripcion={i18n.t('ajustes.ia_desc', { nombre: ia.modelo.nombre })}
-            valor={
-              ia.estado.fase === 'no-compatible'
-                ? i18n.t('ajustes.ia_estado_no_compatible')
-                : ia.estado.fase === 'sin-descargar'
-                  ? i18n.t('ajustes.ia_estado_sin')
-                  : ia.estado.fase === 'descargando' || ia.estado.fase === 'verificando'
-                    ? i18n.t('ajustes.ia_estado_descargando', { porcentaje: Math.round(ia.estado.progreso * 100) })
-                    : ia.estado.fase === 'pausada'
-                      ? i18n.t('ajustes.ia_estado_pausada', { porcentaje: Math.round(ia.estado.progreso * 100) })
-                      : i18n.t('ajustes.ia_estado_descargado', { tamano: formatearTamano(ia.modelo.tamanoBytes) })
-            }
+            valor={textoEstadoIA(ia.estado, ia.modelo.tamanoBytes, i18n)}
             onPress={() => router.push('/analisis')}
           />
           {ia.estado.fase === 'pausada' ? (
@@ -321,10 +336,14 @@ export default function Ajustes() {
                 titulo={i18n.t('ajustes.ia_eliminar')}
                 descripcion={i18n.t('ajustes.ia_eliminar_desc', { tamano: formatearTamano(ia.modelo.tamanoBytes) })}
                 onPress={() =>
-                  alerta(i18n.t('ajustes.ia_eliminar_titulo'), i18n.t('ajustes.ia_eliminar_desc', { tamano: formatearTamano(ia.modelo.tamanoBytes) }), [
-                    { text: i18n.t('comun.cancelar'), style: 'cancel' },
-                    { text: i18n.t('comun.eliminar'), style: 'destructive', onPress: () => void ia.eliminar() },
-                  ])
+                  alerta(
+                    i18n.t('ajustes.ia_eliminar_titulo'),
+                    i18n.t('ajustes.ia_eliminar_desc', { tamano: formatearTamano(ia.modelo.tamanoBytes) }),
+                    [
+                      { text: i18n.t('comun.cancelar'), style: 'cancel' },
+                      { text: i18n.t('comun.eliminar'), style: 'destructive', onPress: () => void ia.eliminar() },
+                    ],
+                  )
                 }
               />
             </Revelar>
@@ -350,7 +369,6 @@ export default function Ajustes() {
           cargando={ocupado === 'importar'}
           deshabilitada={ocupado !== null && ocupado !== 'importar'}
         />
-        <Separador />
         <BloqueDrive />
       </Seccion>
 
@@ -362,6 +380,13 @@ export default function Ajustes() {
           <Texto variante="pequeno">{i18n.t('ajustes.acerca_desc')}</Texto>
           <Texto variante="pequeno">{i18n.t('ajustes.acerca_licencias')}</Texto>
         </View>
+        <Separador />
+        <FilaAjuste
+          icono="shield-checkmark-outline"
+          titulo={i18n.t('ajustes.privacidad')}
+          descripcion={i18n.t('ajustes.privacidad_desc')}
+          onPress={() => router.push('/privacidad')}
+        />
       </Seccion>
     </ScrollView>
   );

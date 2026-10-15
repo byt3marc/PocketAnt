@@ -14,9 +14,13 @@ const mockKit = {
 jest.mock('expo-ai-kit', () => mockKit);
 
 let mockRam: number | null = 17_179_869_184;
+let mockArquitecturas: string[] | null = ['arm64-v8a', 'armeabi-v7a', 'armeabi'];
 jest.mock('expo-device', () => ({
   get totalMemory() {
     return mockRam;
+  },
+  get supportedCpuArchitectures() {
+    return mockArquitecturas;
   },
 }));
 jest.mock('expo-file-system', () => ({ Paths: { availableDiskSpace: 50_000_000_000 } }));
@@ -24,7 +28,7 @@ jest.mock('expo-file-system', () => ({ Paths: { availableDiskSpace: 50_000_000_0
 const mockArchivos: ArchivosModelo = {
   tamanoParcial: jest.fn(() => 0),
   borrarParcial: jest.fn(),
-  md5Parcial: jest.fn(() => '1b8446203a216cfd31f6a2a22f75e5e5'),
+  md5Parcial: jest.fn(async () => '1b8446203a216cfd31f6a2a22f75e5e5'),
   promoverParcial: jest.fn(),
   crearTarea: jest.fn(),
 };
@@ -35,6 +39,7 @@ const modelo = (estado: string, cumple = true) => ({ id: 'gemma-e2b', status: es
 beforeEach(() => {
   jest.clearAllMocks();
   mockRam = 17_179_869_184;
+  mockArquitecturas = ['arm64-v8a', 'armeabi-v7a', 'armeabi'];
   jest.replaceProperty(Platform, 'OS', 'android');
   mockKit.getDownloadableModels.mockResolvedValue([modelo('not-downloaded')]);
   (mockArchivos.tamanoParcial as jest.Mock).mockReturnValue(0);
@@ -96,6 +101,19 @@ describe('crearServicioExpoAiKit: compatibilidad', () => {
   it('fuera de Android no es compatible', async () => {
     jest.replaceProperty(Platform, 'OS', 'ios');
     expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ compatible: false, motivo: 'plataforma' });
+  });
+
+  it('un procesador de 32 bits o x86 no puede con el modelo: no se ofrece la descarga', async () => {
+    mockArquitecturas = ['armeabi-v7a', 'armeabi'];
+    expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ compatible: false, motivo: 'procesador' });
+    mockArquitecturas = ['x86_64', 'x86'];
+    expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ compatible: false, motivo: 'procesador' });
+    expect(mockKit.getDownloadableModels).not.toHaveBeenCalled();
+  });
+
+  it('si no se sabe la arquitectura, no se descarta el teléfono por eso', async () => {
+    mockArquitecturas = null;
+    expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ compatible: true });
   });
 
   it('con poca RAM no ofrece el modelo y dice cuánta hay', async () => {

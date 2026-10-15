@@ -1,6 +1,6 @@
 import type { Movimiento } from '@/dominio/tipos';
 
-import { crearRepositorioMemoria } from '../repositorioMemoria';
+import { crearRepositorioMemoria } from '@/pruebas/repositorioMemoria';
 import {
   analizarArchivo,
   crearArchivo,
@@ -159,6 +159,33 @@ describe('cliente de Drive', () => {
     const error = await cliente.buscar().catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDrive);
     expect(error.clave).toBe('error.drive.red');
+  });
+
+  it('si Google no contesta en 30 s, se rinde con un error de red (no se queda colgado)', async () => {
+    jest.useFakeTimers();
+    try {
+      // Una red que nunca responde: solo el aborto por tiempo corta la espera.
+      const cliente = crearClienteDrive({
+        obtenerToken: async () => 'token',
+        descartarToken: async () => {},
+        fetchFn: ((_url: string, init: RequestInit) =>
+          new Promise((_resolver, rechazar) => {
+            init.signal?.addEventListener('abort', () => rechazar(new Error('abortado')));
+          })) as unknown as typeof fetch,
+      });
+      const busqueda = cliente.buscar().catch((e) => e);
+      await jest.advanceTimersByTimeAsync(29_000);
+      let terminada = false;
+      void busqueda.then(() => (terminada = true));
+      await Promise.resolve();
+      expect(terminada).toBe(false);
+      await jest.advanceTimersByTimeAsync(1_000);
+      const error = await busqueda;
+      expect(error).toBeInstanceOf(ErrorDrive);
+      expect(error.clave).toBe('error.drive.red');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

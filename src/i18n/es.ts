@@ -58,6 +58,7 @@ export const es = {
   'nav.estadisticas': 'Gráficas e Historial',
   'nav.movimiento': 'Movimiento',
   'nav.ajustes': 'Ajustes',
+  'nav.privacidad': 'Privacidad',
   'nav.moneda': 'Moneda',
 
   // — Saldo y gráficas —
@@ -69,11 +70,12 @@ export const es = {
   'grafica.sin_movimientos_periodo': 'Sin movimientos en este periodo',
   'grafica.esqueleto': 'Aún no hay movimientos',
   'dia.sin_movimientos_hoy': 'Sin movimientos hoy',
-  'dia.menos': '▼ {monto} vs {ref}',
-  'dia.mas': '▲ {monto} vs {ref}',
-  'dia.igual': 'Igual gasto que {ref}',
-  'dia.ref_ayer': 'ayer',
-  'dia.ref_anterior': 'el día anterior',
+  'dia.arriba_hoy': 'Vas {monto} arriba hoy',
+  'dia.abajo_hoy': 'Vas {monto} abajo hoy',
+  'dia.par_hoy': 'Hoy vas a la par',
+  'dia.arriba': 'Terminaste {monto} arriba',
+  'dia.abajo': 'Terminaste {monto} abajo',
+  'dia.par': 'Terminaste a la par',
   'tooltip.ingresos': '▲ Ingresos',
   'tooltip.gastos': '▼ Gastos',
   'tooltip.sin_movimientos': 'Sin movimientos',
@@ -99,7 +101,6 @@ export const es = {
   'inicio.titulo_7': '7 días',
   'inicio.enlace_titulo': 'Gráficas e Historial',
   'inicio.enlace_accesible': 'Ver gráficas e historial',
-  'inicio.ver_mas': 'Ver más',
   'inicio.enlace_vacio': 'Aquí verás el detalle de tus movimientos',
   'inicio.enlace_detalle_uno': '{n} movimiento · ver detalle',
   'inicio.enlace_detalle_otros': '{n} movimientos · ver detalle',
@@ -178,12 +179,9 @@ export const es = {
   'ajustes.importar_desc': 'Combina un archivo JSON con tus datos actuales; no borra nada.',
   'ajustes.acerca': 'Acerca de',
   'ajustes.acerca_desc':
-    'Tus datos se guardan en este dispositivo. Si conectas Google Drive, también en una carpeta privada de tu cuenta. No usamos servidores propios.',
+    'Tus datos se guardan en este dispositivo. Sin cuentas, anuncios ni analítica, y sin servidores propios.',
 
   // — Google Drive —
-  'drive.titulo': 'Google Drive',
-  'drive.pendiente_config': 'Configuración pendiente',
-  'drive.pendiente_desc': 'Falta configurar el acceso a Google en la app.',
   'drive.conectar': 'Conectar con Google Drive',
   'drive.conectar_desc': 'Respalda y sincroniza tus datos en una carpeta privada de tu Drive.',
   'drive.conectado_como': 'Conectado como {email}',
@@ -202,6 +200,8 @@ export const es = {
   'drive.hora': '{dia}, {hora}',
   'error.drive.conectar': 'No se pudo conectar con Google. Inténtalo de nuevo.',
   'error.drive.sin_sesion': 'La sesión de Google caducó. Vuelve a conectar tu cuenta.',
+  'error.drive.configuracion':
+    'Esta copia de la app no está registrada en Google (paquete o firma). Falta configurarla en Google Cloud.',
   'error.drive.red': 'No hay conexión con Google. Se reintentará más tarde.',
   'error.drive.permiso': 'Google no autorizó el acceso a Drive. Vuelve a conectar tu cuenta.',
   'error.drive.servicio': 'Google Drive respondió con un error ({codigo}). Se reintentará más tarde.',
@@ -230,6 +230,11 @@ export const es = {
   'notif.cobro_hoy': '{motivo} se cobra hoy · {monto}',
   'notif.cobro_manana': '{motivo} se cobra mañana · {monto}',
   'notif.cobro_dias': '{motivo} se cobra en {n} días ({fecha}) · {monto}',
+  'notif.ofrecer_titulo': '¿Te aviso antes de cada cobro?',
+  'notif.ofrecer_mensaje':
+    'Te avisamos unos días antes de que se cobre cada gasto recurrente, como este. Puedes cambiarlo cuando quieras en Ajustes.',
+  'notif.ofrecer_no': 'Ahora no',
+  'notif.ofrecer_si': 'Activar avisos',
 
   // — Notificaciones: ajustes —
   'ajustes.notif_seccion': 'Notificaciones',
@@ -362,11 +367,18 @@ export const es = {
   'ia.pie': 'Generado en tu teléfono. Información orientativa, no es asesoría financiera.',
   'ia.reportar': 'Reportar respuesta',
   'ia.reportar_titulo': '¿Reportar esta respuesta?',
-  'ia.reportar_mensaje': 'Úsalo si la respuesta es ofensiva, peligrosa o claramente incorrecta.',
+  'ia.reportar_mensaje':
+    'Úsalo si la respuesta es ofensiva, peligrosa o claramente incorrecta. Se enviará solo el texto de esta respuesta (puede incluir cifras de tus gastos) para revisarla.',
+  'ia.reportar_mensaje_local': 'Úsalo si la respuesta es ofensiva, peligrosa o claramente incorrecta. Se ocultará de la pantalla.',
   'ia.reportar_enviar': 'Reportar',
-  'ia.reportar_gracias': 'Gracias por avisar. Ocultamos esa respuesta.',
+  'ia.reportar_gracias': 'Gracias por avisar: recibimos tu reporte y ocultamos esa respuesta.',
+  'ia.reportar_enviando': 'Enviando el reporte…',
+  'ia.reportar_fallo': 'No se pudo enviar el reporte (¿sin conexión?). Ocultamos esa respuesta igualmente.',
+  'ia.reportar_oculta': 'Ocultamos esa respuesta.',
   'ia.no_compatible_ram': 'Tu teléfono tiene {ram} de RAM y la IA necesita al menos {minimo}. Seguirás viendo el análisis normal.',
   'ia.no_compatible_plataforma': 'La IA local por ahora solo está disponible en Android. Seguirás viendo el análisis normal.',
+  'ia.no_compatible_procesador':
+    'El procesador de este teléfono no puede ejecutar el modelo de IA (necesita uno de 64 bits). Seguirás viendo el análisis normal.',
   'ia.no_compatible_generico': 'Este teléfono no puede ejecutar el modelo de IA. Seguirás viendo el análisis normal.',
   'ia.error_descarga': 'Se cortó la descarga. Lo descargado se conserva: revisa tu conexión y continúa.',
   'ia.error_disco': 'No hay espacio suficiente para el modelo.',
@@ -393,11 +405,12 @@ export const es = {
   'ajustes.ia_estado_pausada': 'Pausada · {porcentaje}%',
   'ajustes.ia_descartar_desc': 'Borra lo que se descargó del modelo para liberar espacio.',
   'ajustes.ia_estado_no_compatible': 'No compatible con este teléfono',
-  'ajustes.ia_abrir': 'Abrir Análisis',
   'ajustes.ia_eliminar': 'Eliminar modelo',
   'ajustes.ia_eliminar_desc': 'Libera {tamano} de espacio. Podrás volver a descargarlo.',
   'ajustes.ia_eliminar_titulo': '¿Eliminar el modelo?',
   'ajustes.acerca_licencias': 'Modelo Gemma 4 de Google (licencia Apache 2.0), motor LiteRT-LM (Apache 2.0) y expo-ai-kit (MIT).',
+  'ajustes.privacidad': 'Política de privacidad',
+  'ajustes.privacidad_desc': 'Qué datos usa la app y dónde se guardan.',
 } as const;
 
 export type ClaveTexto = keyof typeof es;

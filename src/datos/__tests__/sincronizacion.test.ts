@@ -1,6 +1,6 @@
 import type { Movimiento } from '@/dominio/tipos';
 
-import { crearRepositorioMemoria } from '../repositorioMemoria';
+import { crearRepositorioMemoria } from '@/pruebas/repositorioMemoria';
 import {
   analizarArchivo,
   crearArchivo,

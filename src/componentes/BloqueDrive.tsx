@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import { useSincronizacion } from '@/datos/sincronizacion/SincronizacionProvider';
-import { claveDeFecha, formatearDia } from '@/dominio/fechas';
+import { claveDeFecha, formatearDia, formatearHora } from '@/dominio/fechas';
 import { mensajeDeError } from '@/i18n/errores';
 import type { I18n } from '@/i18n/traducir';
 import type { Paleta } from '@/tema/paleta';
@@ -12,14 +12,17 @@ import { useDialogo } from './DialogoProvider';
 import { FilaAjuste } from './FilaAjuste';
 import { FilaInterruptor } from './FilaInterruptor';
 
-/** "Hoy, 21:35" / "Today, 9:35 PM" en hora local. */
+/** "Hoy, 21:35" / "Today, 21:35" en hora local. */
 function formatearCuando(iso: string, i18n: I18n): string {
   const fecha = new Date(iso);
-  const hora = `${String(fecha.getHours()).padStart(2, '0')}:${String(fecha.getMinutes()).padStart(2, '0')}`;
+  const hora = formatearHora(fecha.getHours(), fecha.getMinutes());
   return i18n.t('drive.hora', { dia: formatearDia(claveDeFecha(fecha), i18n), hora });
 }
 
-/** Filas de Ajustes para conectar, ver el estado y controlar la sincronización con Google Drive. */
+/**
+ * Filas de Ajustes para conectar, ver el estado y controlar la sincronización con Google Drive, con su separador de
+ * arriba. Si Drive no está disponible (sin activar en `app.json` o sin el módulo nativo) no muestra nada.
+ */
 export function BloqueDrive() {
   const estilos = useEstilos(crearEstilos);
   const { ajustes, cambiarDrive, i18n } = useAjustes();
@@ -28,21 +31,12 @@ export function BloqueDrive() {
     useSincronizacion();
   const drive = ajustes.drive;
 
-  if (!disponible) {
-    return (
-      <FilaAjuste
-        icono="cloud-outline"
-        titulo={i18n.t('drive.titulo')}
-        descripcion={i18n.t('drive.pendiente_desc')}
-        insignia={i18n.t('drive.pendiente_config')}
-        deshabilitada
-      />
-    );
-  }
+  if (!disponible) return null;
 
   if (!drive.conectado) {
     return (
       <>
+        <View style={estilos.separador} />
         <FilaAjuste
           icono="cloud-outline"
           titulo={i18n.t('drive.conectar')}
@@ -71,6 +65,7 @@ export function BloqueDrive() {
 
   return (
     <>
+      <View style={estilos.separador} />
       <FilaAjuste
         icono="cloud-done-outline"
         titulo={i18n.t('drive.conectado_como', { email: drive.email ?? '' })}

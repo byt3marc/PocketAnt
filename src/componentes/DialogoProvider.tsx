@@ -2,7 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
-import { radios, type Paleta } from '@/tema/paleta';
+import { ONDA, radios, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
 import { Texto } from './Texto';
@@ -88,7 +88,7 @@ export function DialogoProvider({ children }: { children: ReactNode }) {
                     accessibilityRole="button"
                     accessibilityLabel={boton.text}
                     onPress={() => pulsar(boton)}
-                    android_ripple={{ color: 'rgba(128,128,128,0.2)' }}
+                    android_ripple={ONDA}
                     style={({ pressed }) => [estilos.boton, pressed && { opacity: 0.6 }]}
                   >
                     <Texto

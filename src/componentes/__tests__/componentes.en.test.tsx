@@ -48,7 +48,7 @@ describe('app en inglés', () => {
     expect(screen.getByText('Monthly · every 2 months')).toBeTruthy();
   });
 
-  it('la gráfica diaria compara con ayer', async () => {
+  it('la gráfica diaria dice el balance del día', async () => {
     // Fechas relativas a hoy: `BloqueDia` usa el día real, así que la prueba no depende de cuándo se corra.
     const movimientos = [
       movimiento({ id: 'a', tipo: 'ingreso', monto: 120, fecha: hoy(), motivo: 'Sale' }),
@@ -57,7 +57,7 @@ describe('app en inglés', () => {
     ];
     await render(conAjustes(<BloqueDia movimientos={movimientos} compacto />));
     expect(screen.getByText('Today')).toBeTruthy();
-    expect(screen.getByText('▼ $30.00 vs yesterday')).toBeTruthy();
+    expect(screen.getByText("You're $75.00 up today")).toBeTruthy();
   });
 
   it('la gráfica diaria avisa cuando hoy no hay movimientos', async () => {

@@ -5,10 +5,11 @@ import { AjustesProvider } from '@/ajustes/AjustesProvider';
 import { AvisoProvider } from '@/componentes/AvisoProvider';
 import { DialogoProvider } from '@/componentes/DialogoProvider';
 import { IAProvider } from '@/ia/IAProvider';
-import { crearServicioFalso } from '@/ia/servicioFalso';
+import { crearServicioFalso } from '@/pruebas/servicioIAFalso';
 import type { EvaluacionIA } from '@/ia/tipos';
 
 const mockPush = jest.fn();
+const mockPedirPermisoSiHaceFalta = jest.fn();
 
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('expo-constants', () => ({ expoConfig: { version: '1.0.0' } }));
@@ -24,6 +25,7 @@ jest.mock('@/notificaciones/NotificacionesProvider', () => ({
   useNotificaciones: () => ({
     permiso: 'concedido',
     pedirPermiso: jest.fn(),
+    pedirPermisoSiHaceFalta: mockPedirPermisoSiHaceFalta,
     abrirAjustesDelSistema: jest.fn(),
   }),
 }));
@@ -142,6 +144,13 @@ describe('Ajustes: IA local', () => {
     await montar(compatible());
     expect(screen.getByText(/Gemma 4 de Google \(licencia Apache 2\.0\)/)).toBeTruthy();
   });
+
+  it('«Acerca de» lleva a la política de privacidad', async () => {
+    await montar(compatible());
+    mockPush.mockClear();
+    await fireEvent.press(screen.getByRole('button', { name: /Política de privacidad/ }));
+    expect(mockPush).toHaveBeenCalledWith('/privacidad');
+  });
 });
 
 describe('Ajustes: bloques que aparecen y desaparecen', () => {
@@ -157,6 +166,16 @@ describe('Ajustes: bloques que aparecen y desaparecen', () => {
 
     await fireEvent(screen.getByRole('switch', { name: 'Recordatorio de registro' }), 'valueChange', false);
     expect(screen.queryByText('Repetir cada')).toBeNull();
+  });
+
+  it('el permiso de notificaciones se pide al encender un aviso, no al apagarlo', async () => {
+    await montar(compatible());
+    mockPedirPermisoSiHaceFalta.mockClear();
+    await fireEvent(screen.getByRole('switch', { name: 'Recordatorio de registro' }), 'valueChange', true);
+    expect(mockPedirPermisoSiHaceFalta).toHaveBeenCalledTimes(1);
+    await fireEvent(screen.getByRole('switch', { name: 'Recordatorio de registro' }), 'valueChange', false);
+    await fireEvent(screen.getByRole('switch', { name: 'Aviso de cobros recurrentes' }), 'valueChange', true);
+    expect(mockPedirPermisoSiHaceFalta).toHaveBeenCalledTimes(2);
   });
 
   it('al activar los avisos de cobros aparece cuántos días antes, y al apagarlos se va', async () => {

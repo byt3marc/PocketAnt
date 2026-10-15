@@ -78,6 +78,7 @@ function EtiquetaEjeX({ texto, espaciado, medidas }: PropsEtiqueta) {
       <Texto
         variante="pequeno"
         numberOfLines={1}
+        allowFontScaling={false}
         style={{ color: colores.textoTenue, fontSize: medidas.fuente }}
       >
         {texto}
@@ -127,6 +128,7 @@ function GraficaLineas({
 
   return (
     <LineChart
+      allowFontScaling={false}
       data={crearDatos('ingresos', true)}
       data2={crearDatos('gastos', false)}
       width={anchoGrafica}
@@ -233,6 +235,7 @@ function GraficaBarras({ serie, ancho, alto, modoEtiquetas }: PropsInternas) {
 
   return (
     <BarChart
+      allowFontScaling={false}
       data={datos}
       width={anchoGrafica}
       height={alto}
@@ -288,7 +291,8 @@ function GraficaEsqueleto({
   modoEtiquetas,
   compacto,
   mensaje,
-}: PropsInternas & { mensaje: string }) {
+  animar,
+}: PropsInternas & { mensaje: string; animar: boolean }) {
   const { colores, i18n } = useAjustes();
   const m = compacto ? MEDIDAS.compacto : MEDIDAS.normal;
   const [opacidad] = useState(() => new Animated.Value(0.55));
@@ -297,9 +301,11 @@ function GraficaEsqueleto({
   const espaciado = total > 1 ? (anchoGrafica - 2 * m.margenLateral) / (total - 1) : 0;
 
   useEffect(() => {
+    if (!animar) return;
+    let vigente = true;
     let animacion: Animated.CompositeAnimation | undefined;
     AccessibilityInfo.isReduceMotionEnabled().then((reducir) => {
-      if (reducir) return;
+      if (!vigente || reducir) return;
       animacion = Animated.loop(
         Animated.sequence([
           Animated.timing(opacidad, { toValue: 1, duration: 1100, useNativeDriver: true }),
@@ -308,8 +314,11 @@ function GraficaEsqueleto({
       );
       animacion.start();
     });
-    return () => animacion?.stop();
-  }, [opacidad]);
+    return () => {
+      vigente = false;
+      animacion?.stop();
+    };
+  }, [opacidad, animar]);
 
   const ingresos = ondaDecorativa(total, 55, 28, 0.4).map((punto, i) => {
     const texto = etiquetaEjeX(serie[i], i, total, modoEtiquetas, i18n.idioma, compacto);
@@ -326,6 +335,7 @@ function GraficaEsqueleto({
     <View>
       <Animated.View style={{ opacity: opacidad }} pointerEvents="none">
         <LineChart
+          allowFontScaling={false}
           data={ingresos}
           data2={gastos}
           width={anchoGrafica}
@@ -387,6 +397,8 @@ interface Props {
   esqueleto?: boolean;
   /** Versión para el Home en dos columnas: ejes y etiquetas más chicos, sin interacción (solo líneas y área). */
   compacto?: boolean;
+  /** `false` con otra pantalla encima: el esqueleto deja de latir (no gasta batería sin que nadie lo vea). */
+  animar?: boolean;
 }
 
 /** Ingresos (verde) y gastos (rojo) por día. Al tocar o deslizar muestra el resumen del día (salvo en compacto). */
@@ -397,6 +409,7 @@ export function GraficaMovimientos({
   modoEtiquetas,
   esqueleto = false,
   compacto = false,
+  animar = true,
 }: Props) {
   const { i18n } = useAjustes();
   const [ancho, setAncho] = useState(0);
@@ -407,7 +420,7 @@ export function GraficaMovimientos({
   return (
     <View onLayout={alMedir} style={{ minHeight: alto + ALTO_EXTRA }}>
       {ancho === 0 ? null : esqueleto ? (
-        <GraficaEsqueleto {...comunes} mensaje={i18n.t('grafica.esqueleto')} />
+        <GraficaEsqueleto {...comunes} mensaje={i18n.t('grafica.esqueleto')} animar={animar} />
       ) : tipo === 'barras' ? (
         <GraficaBarras {...comunes} />
       ) : (

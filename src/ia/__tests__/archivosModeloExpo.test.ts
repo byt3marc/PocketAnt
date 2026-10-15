@@ -131,9 +131,24 @@ describe('crearArchivosModelo', () => {
     expect(mockRegistro.archivos.get(PARCIAL)!.borrados).toBe(1);
   });
 
-  it('el MD5 sale del archivo parcial', () => {
+  it('sin módulo nativo, el MD5 sale del archivo parcial (expo-file-system)', async () => {
     poner(PARCIAL, { exists: true, size: 1, md5: 'abc' });
-    expect(crearArchivosModelo('gemma-e2b').md5Parcial()).toBe('abc');
+    expect(await crearArchivosModelo('gemma-e2b', null).md5Parcial()).toBe('abc');
+  });
+
+  it('con módulo nativo, el MD5 se calcula fuera del hilo de JavaScript sobre la URI del parcial', async () => {
+    poner(PARCIAL, { exists: true, size: 1, md5: 'lento' });
+    const md5Nativo = jest.fn(async () => 'rapido');
+    expect(await crearArchivosModelo('gemma-e2b', md5Nativo).md5Parcial()).toBe('rapido');
+    expect(md5Nativo).toHaveBeenCalledWith(PARCIAL);
+  });
+
+  it('si el MD5 nativo falla, se usa el de expo-file-system (no se da por corrupto un archivo bueno)', async () => {
+    poner(PARCIAL, { exists: true, size: 1, md5: 'abc' });
+    const md5Nativo = jest.fn(async () => {
+      throw new Error('E/S');
+    });
+    expect(await crearArchivosModelo('gemma-e2b', md5Nativo).md5Parcial()).toBe('abc');
   });
 
   it('al promover reemplaza un modelo viejo que hubiera en su sitio', () => {

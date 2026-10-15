@@ -14,7 +14,7 @@ import { ErrorTraducible } from '@/i18n/errores';
 
 import { useDatos } from '../DatosProvider';
 
-import { conectarCuenta, desconectarCuenta, descartarToken, obtenerTokenDeAcceso } from './google/cuenta';
+import { accesoGoogle } from './google/cuenta';
 import { DRIVE_DISPONIBLE } from './google/config';
 import { crearClienteDrive } from './google/driveApi';
 import { ErrorDrive } from './google/errores';
@@ -31,7 +31,7 @@ const MIN_ENTRE_INTENTOS_MS = 60_000;
 export type EstadoSincronizacion = 'desconectado' | 'inactivo' | 'sincronizando' | 'error';
 
 interface ContextoSincronizacion {
-  /** Hay un ID de cliente de Google configurado y la plataforma lo soporta. */
+  /** Drive está activado en `app.json` y este build trae el módulo nativo de Google (solo Android). */
   disponible: boolean;
   estado: EstadoSincronizacion;
   /** Último error, para mostrarlo traducido (`mensajeDeError`). */
@@ -40,7 +40,7 @@ interface ContextoSincronizacion {
   requiereReconectar: boolean;
   /** Abre el selector de cuentas de Google, guarda la cuenta y hace la primera sincronización. */
   conectar: () => Promise<void>;
-  /** Cierra la sesión de Google. Los datos locales y la copia en Drive se conservan. */
+  /** Retira el permiso de la app en la cuenta. Los datos locales y la copia en Drive se conservan. */
   desconectar: () => Promise<void>;
   sincronizarAhora: () => Promise<void>;
 }
@@ -48,7 +48,12 @@ interface ContextoSincronizacion {
 const Contexto = createContext<ContextoSincronizacion | null>(null);
 
 function crearProveedor(): ProveedorSync {
-  return crearProveedorDrive(crearClienteDrive({ obtenerToken: obtenerTokenDeAcceso, descartarToken }));
+  return crearProveedorDrive(
+    crearClienteDrive({
+      obtenerToken: accesoGoogle.obtenerTokenDeAcceso,
+      descartarToken: accesoGoogle.descartarToken,
+    }),
+  );
 }
 
 /**
@@ -97,7 +102,7 @@ export function SincronizacionProvider({ children }: { children: ReactNode }) {
   const conectar = async () => {
     setError(null);
     try {
-      const cuenta = await conectarCuenta();
+      const cuenta = await accesoGoogle.conectarCuenta();
       if (!cuenta) return; // el usuario canceló
       proveedor.current = null;
       cambiarDrive({ conectado: true, email: cuenta.email });
@@ -109,9 +114,9 @@ export function SincronizacionProvider({ children }: { children: ReactNode }) {
 
   const desconectar = async () => {
     try {
-      await desconectarCuenta();
+      await accesoGoogle.desconectarCuenta(ajustes.drive.email);
     } catch {
-      // Aunque Google no responda, en esta app la cuenta queda desconectada.
+      // Aunque Google no responda (p. ej. sin conexión), en esta app la cuenta queda desconectada.
     }
     proveedor.current = null;
     cambiarDrive({ conectado: false, email: null, ultimaSync: null });

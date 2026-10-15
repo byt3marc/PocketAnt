@@ -1,4 +1,4 @@
-import { claveDeFecha } from './fechas';
+import { claveDeFecha, diasDelMes } from './fechas';
 
 export const DIAS_POR_SEMANA = 7;
 /** Seis filas bastan para cualquier mes y mantienen fijo el alto del calendario. */
@@ -13,10 +13,10 @@ export const ANIO_MAXIMO = 2100;
  */
 export function semanasDelMes(anio: number, mes: number, primerDia: number): (string | null)[][] {
   const hueco = (new Date(anio, mes, 1).getDay() - primerDia + DIAS_POR_SEMANA) % DIAS_POR_SEMANA;
-  const diasDelMes = new Date(anio, mes + 1, 0).getDate();
+  const diasEnElMes = diasDelMes(anio, mes);
 
   const celdas: (string | null)[] = Array.from({ length: hueco }, () => null);
-  for (let dia = 1; dia <= diasDelMes; dia++) celdas.push(claveDeFecha(new Date(anio, mes, dia)));
+  for (let dia = 1; dia <= diasEnElMes; dia++) celdas.push(claveDeFecha(new Date(anio, mes, dia)));
   while (celdas.length < FILAS_CALENDARIO * DIAS_POR_SEMANA) celdas.push(null);
 
   return Array.from({ length: FILAS_CALENDARIO }, (_, fila) =>

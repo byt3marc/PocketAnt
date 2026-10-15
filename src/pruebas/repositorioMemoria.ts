@@ -1,7 +1,7 @@
 import type { Movimiento } from '@/dominio/tipos';
 
-import type { RepositorioMovimientos } from './repositorio';
-import { planificarFusion, resumirPlan } from './sincronizacion/fusion';
+import type { RepositorioMovimientos } from '@/datos/repositorio';
+import { planificarFusion, resumirPlan } from '@/datos/sincronizacion/fusion';
 
 /** Repositorio en memoria con las mismas reglas que el de SQLite. Se usa en pruebas. */
 export function crearRepositorioMemoria(inicial: readonly Movimiento[] = []): RepositorioMovimientos {

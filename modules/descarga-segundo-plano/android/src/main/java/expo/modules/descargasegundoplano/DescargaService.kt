@@ -47,7 +47,7 @@ class DescargaService : Service() {
 
   override fun onDestroy() {
     liberarWakeLock()
-    if (instancia === this) instancia = null
+    soltarInstancia()
     iniciado = false
     super.onDestroy()
   }
@@ -62,16 +62,30 @@ class DescargaService : Service() {
       intent.getStringExtra(EXTRA_CANAL_RESULTADO) ?: "Model status"
     )
 
-    instancia = this
-    iniciado = true
-
     val notificacion = construirProgreso(texto, 0)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      startForeground(ID_PROGRESO, notificacion, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-    } else {
-      startForeground(ID_PROGRESO, notificacion)
+    try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        startForeground(ID_PROGRESO, notificacion, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+      } else {
+        startForeground(ID_PROGRESO, notificacion)
+      }
+    } catch (e: Exception) {
+      // Android 15 lo impide si ya se gastaron las 6 h diarias de `dataSync` (y Android 12+ si la app no está a la
+      // vista): sin el servicio, la descarga sigue mientras la app esté abierta. Sin esto, la app se cerraría.
+      synchronized(cerrojo) { terminarPendiente = null }
+      stopSelf()
+      return
     }
+    iniciado = true
     adquirirWakeLock()
+
+    // Si la descarga ya terminó antes de que el servicio llegara a arrancar (p. ej. falló al instante sin conexión),
+    // se aplica ahora ese final: si no, la notificación y el wakelock se quedarían colgados.
+    val final = synchronized(cerrojo) {
+      instancia = this
+      terminarPendiente.also { terminarPendiente = null }
+    }
+    if (final != null) terminar(final.titulo, final.texto, final.mostrarAviso)
   }
 
   /** `fraccion` de 0 a 1; un valor negativo muestra una barra indeterminada (p. ej. al verificar el archivo). */
@@ -101,8 +115,12 @@ class DescargaService : Service() {
   private fun detener() {
     liberarWakeLock()
     iniciado = false
-    if (instancia === this) instancia = null
+    soltarInstancia()
     stopSelf()
+  }
+
+  private fun soltarInstancia() {
+    synchronized(cerrojo) { if (instancia === this) instancia = null }
   }
 
   private fun construirProgreso(texto: String, porcentaje: Int): Notification {
@@ -158,6 +176,9 @@ class DescargaService : Service() {
     wakeLock = null
   }
 
+  /** Cómo se cierra la descarga (título y texto del aviso final, y si se muestra). */
+  data class Final(val titulo: String, val texto: String, val mostrarAviso: Boolean)
+
   companion object {
     const val ACCION_INICIAR = "expo.modules.descargasegundoplano.INICIAR"
     const val ACCION_PAUSAR = "expo.modules.descargasegundoplano.PAUSAR"
@@ -179,6 +200,26 @@ class DescargaService : Service() {
     /** El servicio en marcha (el mismo proceso que JavaScript), para actualizarlo sin volver a lanzar intents. */
     @Volatile
     var instancia: DescargaService? = null
+      private set
+
+    /** Protege `instancia` y `terminarPendiente`: JavaScript y el servicio corren en hilos distintos. */
+    private val cerrojo = Any()
+
+    /** Un `terminar` que llegó antes de que el servicio arrancara; lo aplica el propio servicio al arrancar. */
+    private var terminarPendiente: Final? = null
+
+    /** Antes de lanzar el servicio: olvida el final de una descarga anterior. */
+    fun prepararInicio() {
+      synchronized(cerrojo) { terminarPendiente = null }
+    }
+
+    /** Termina el servicio en marcha o, si todavía no arrancó, deja el final pendiente para cuando arranque. */
+    fun terminarOAplazar(final: Final) {
+      val servicio = synchronized(cerrojo) {
+        instancia.also { if (it == null) terminarPendiente = final }
+      }
+      servicio?.terminar(final.titulo, final.texto, final.mostrarAviso)
+    }
 
     /** Quien recibe los botones «Pausar» y «Cancelar» de la notificación (el módulo, que avisa a JavaScript). */
     @Volatile

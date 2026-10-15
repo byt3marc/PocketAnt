@@ -52,18 +52,17 @@ export function fechaMasAntigua(movimientos: readonly Movimiento[]): string | nu
 
 export interface ResumenDia {
   dia: PuntoDia;
-  anterior: PuntoDia;
-  /** Gastos del día menos los del día anterior: negativo = se gastó menos. */
-  difGastos: number;
+  /** Ingresos menos gastos del día: positivo = el día va (o terminó) arriba; negativo = abajo. */
+  balance: number;
 }
 
-/** Un día frente al anterior, para la gráfica diaria. */
+/** Los totales de un día y su balance, para la gráfica diaria. */
 export function resumirDia(movimientos: readonly Movimiento[], dia: string): ResumenDia {
-  const [anterior, actual] = construirSerie(movimientos, dia, 2);
+  const [actual] = construirSerie(movimientos, dia, 1);
   return {
     dia: actual,
-    anterior,
-    difGastos: deCentavos(aCentavos(actual.gastos) - aCentavos(anterior.gastos)),
+    // En centavos, como el resto de las cuentas: 0.3 − 0.1 da 0.2 y no 0.19999999999999998.
+    balance: deCentavos(aCentavos(actual.ingresos) - aCentavos(actual.gastos)),
   };
 }
 

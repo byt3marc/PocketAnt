@@ -20,6 +20,7 @@ import { useEstilos } from '@/tema/useEstilos';
 
 import { FlechaPeriodo } from './FlechaPeriodo';
 import { Icono } from './Icono';
+import { ESCALA_ICONO, PresionableEscala } from './PresionableEscala';
 import { Texto } from './Texto';
 
 const capitalizar = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
@@ -132,7 +133,9 @@ function DialogoCalendario({ fecha, primerDia, onAceptar, onCerrar }: PropsDialo
               <View style={estilos.fila}>
                 {inicialesDeSemana.map((inicial, i) => (
                   <View key={i} style={estilos.celdaInicial}>
-                    <Texto variante="pequeno">{inicial}</Texto>
+                    <Texto variante="pequeno" maxFontSizeMultiplier={MAX_ESCALA_LETRA}>
+                      {inicial}
+                    </Texto>
                   </View>
                 ))}
               </View>
@@ -145,21 +148,27 @@ function DialogoCalendario({ fecha, primerDia, onAceptar, onCerrar }: PropsDialo
                     const esHoy = clave === hoy;
                     return (
                       <View key={columna} style={estilos.celda}>
-                        <Pressable
+                        <PresionableEscala
                           accessibilityRole="button"
                           accessibilityLabel={fechaAccesible(clave, i18n)}
                           accessibilityState={{ selected: esElegida }}
                           onPress={() => setElegida(clave)}
+                          escala={ESCALA_ICONO}
                           style={[
                             estilos.dia,
                             esHoy && !esElegida && estilos.diaHoy,
                             esElegida && estilos.diaElegido,
                           ]}
                         >
-                          <Texto variante="secundario" negrita={esElegida} color={esElegida ? 'sobrePrimario' : 'texto'}>
+                          <Texto
+                            variante="secundario"
+                            negrita={esElegida}
+                            color={esElegida ? 'sobrePrimario' : 'texto'}
+                            maxFontSizeMultiplier={MAX_ESCALA_LETRA}
+                          >
                             {fechaDeClave(clave).getDate()}
                           </Texto>
-                        </Pressable>
+                        </PresionableEscala>
                       </View>
                     );
                   })}
@@ -192,7 +201,7 @@ function DialogoCalendario({ fecha, primerDia, onAceptar, onCerrar }: PropsDialo
                     const mes = fila * 3 + columna;
                     const esMostrado = mes === mostrado.mes;
                     return (
-                      <Pressable
+                      <PresionableEscala
                         key={mes}
                         accessibilityRole="button"
                         accessibilityLabel={`${capitalizar(MESES_LARGOS[i18n.idioma][mes])} ${mostrado.anio}`}
@@ -203,10 +212,15 @@ function DialogoCalendario({ fecha, primerDia, onAceptar, onCerrar }: PropsDialo
                         }}
                         style={[estilos.mes, esMostrado && estilos.mesElegido]}
                       >
-                        <Texto variante="cuerpo" negrita={esMostrado} color={esMostrado ? 'sobrePrimario' : 'texto'}>
+                        <Texto
+                          variante="cuerpo"
+                          negrita={esMostrado}
+                          color={esMostrado ? 'sobrePrimario' : 'texto'}
+                          maxFontSizeMultiplier={MAX_ESCALA_LETRA}
+                        >
                           {capitalizar(MESES_CORTOS[i18n.idioma][mes])}
                         </Texto>
-                      </Pressable>
+                      </PresionableEscala>
                     );
                   })}
                 </View>
@@ -278,6 +292,11 @@ export function SelectorFecha({ fecha, onCambio, primerDia }: Props) {
 }
 
 const TAMANO_DIA = 44;
+/**
+ * Las celdas del calendario tienen tamaño fijo (7 por fila): con la letra del sistema al doble, «28» ya no cabe. Se deja
+ * crecer hasta un 30 % (el resto de la app escala sin límite).
+ */
+const MAX_ESCALA_LETRA = 1.3;
 
 const crearEstilos = (c: Paleta) =>
   StyleSheet.create({

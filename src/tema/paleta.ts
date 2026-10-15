@@ -68,5 +68,7 @@ export const paletas: Record<EsquemaDeColor, Paleta> = {
   oscuro: paletaOscura,
 };
 
-export const espaciado = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 export const radios = { sm: 8, md: 12, lg: 16, xl: 24, pildora: 999 } as const;
+
+/** Onda de Android al tocar una fila o un botón de texto: un gris translúcido que se ve igual en claro y en oscuro. */
+export const ONDA = { color: 'rgba(128,128,128,0.15)' } as const;

@@ -96,33 +96,48 @@ describe('fechaMasAntigua', () => {
 });
 
 describe('resumirDia', () => {
-  it('compara el día con el anterior', () => {
+  it('el balance del día es ingresos menos gastos, sin contar otros días', () => {
     const r = resumirDia(
       [
-        mov({ tipo: 'ingreso', monto: 120, fecha: '2026-10-12' }),
-        mov({ tipo: 'gasto', monto: 45, fecha: '2026-10-12' }),
-        mov({ tipo: 'gasto', monto: 75, fecha: '2026-10-11' }),
-        mov({ tipo: 'gasto', monto: 500, fecha: '2026-10-10' }), // dos días atrás: no cuenta
+        mov({ tipo: 'ingreso', monto: 10, fecha: '2026-10-12' }),
+        mov({ tipo: 'gasto', monto: 2, fecha: '2026-10-12' }),
+        mov({ tipo: 'gasto', monto: 75, fecha: '2026-10-11' }), // ayer: no cuenta
       ],
       '2026-10-12',
     );
-    expect(r.dia).toMatchObject({ clave: '2026-10-12', ingresos: 120, gastos: 45 });
-    expect(r.anterior).toMatchObject({ clave: '2026-10-11', ingresos: 0, gastos: 75 });
-    expect(r.difGastos).toBe(-30);
+    expect(r.dia).toMatchObject({ clave: '2026-10-12', ingresos: 10, gastos: 2 });
+    expect(r.balance).toBe(8);
   });
 
-  it('la diferencia no arrastra errores de punto flotante', () => {
-    const r = resumirDia(
-      [mov({ monto: 0.3, fecha: '2026-10-12' }), mov({ monto: 0.1, fecha: '2026-10-11' })],
+  it('negativo si se gastó más de lo que entró, y cero si quedó a la par', () => {
+    const abajo = resumirDia(
+      [mov({ tipo: 'ingreso', monto: 20, fecha: '2026-10-12' }), mov({ monto: 50, fecha: '2026-10-12' })],
       '2026-10-12',
     );
-    expect(r.difGastos).toBe(0.2);
+    expect(abajo.balance).toBe(-30);
+    const par = resumirDia(
+      [mov({ tipo: 'ingreso', monto: 15, fecha: '2026-10-12' }), mov({ monto: 15, fecha: '2026-10-12' })],
+      '2026-10-12',
+    );
+    expect(par.balance).toBe(0);
+  });
+
+  it('el balance no arrastra errores de punto flotante', () => {
+    const r = resumirDia(
+      [
+        mov({ tipo: 'ingreso', monto: 0.1, fecha: '2026-10-12' }),
+        mov({ tipo: 'ingreso', monto: 0.2, fecha: '2026-10-12' }),
+        mov({ monto: 0.1, fecha: '2026-10-12' }),
+      ],
+      '2026-10-12',
+    );
+    expect(r.balance).toBe(0.2);
   });
 
   it('un día sin movimientos queda en cero e ignora los eliminados', () => {
     const r = resumirDia([mov({ eliminado: true, fecha: '2026-10-12' })], '2026-10-12');
     expect(r.dia).toMatchObject({ ingresos: 0, gastos: 0, movimientos: [] });
-    expect(r.difGastos).toBe(0);
+    expect(r.balance).toBe(0);
   });
 });
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { REVELAR_ENTRADA, TRANSICION_PROGRESO } from '@/animacion/constantes';
@@ -9,8 +9,9 @@ import { useAjustes } from '@/ajustes/AjustesProvider';
 import type { HechosAnalisis } from '@/dominio/analisis';
 import { formatearRam, formatearTamano } from '@/dominio/formato';
 import { construirPrompt } from '@/dominio/promptIA';
-import { CORREO_REPORTES, RAM_MINIMA_ETIQUETA } from '@/ia/config';
+import { RAM_MINIMA_ETIQUETA } from '@/ia/config';
 import { useIA } from '@/ia/IAProvider';
+import { enviarReporte, formularioConfigurado } from '@/ia/reportes';
 import { radios, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
@@ -23,6 +24,16 @@ import { Texto } from './Texto';
 
 /** Margen sobre el tamaño del modelo que debe quedar libre en el almacenamiento antes de descargar. */
 const MARGEN_DISCO = 1.15;
+
+/** Qué pasó con la última respuesta reportada (`local`: no hay formulario configurado, solo se ocultó). */
+type EnvioReporte = 'enviando' | 'enviado' | 'fallo' | 'local';
+
+const TEXTO_REPORTE = {
+  enviando: 'ia.reportar_enviando',
+  enviado: 'ia.reportar_gracias',
+  fallo: 'ia.reportar_fallo',
+  local: 'ia.reportar_oculta',
+} as const;
 
 function BarraProgreso({ fraccion, etiqueta }: { fraccion: number; etiqueta: string }) {
   const estilos = useEstilos(crearEstilos);
@@ -88,6 +99,8 @@ export function BloqueIA({ hechos }: Props) {
   const { modelo, estado, informe, descargar, pausarDescarga, cancelarDescarga, eliminar, generarInforme, detener, reportar } =
     useIA();
 
+  const [envioReporte, setEnvioReporte] = useState<EnvioReporte>('local');
+
   const { evaluacion, fase, progreso, error } = estado;
   const tamano = formatearTamano(modelo.tamanoBytes);
 
@@ -121,20 +134,28 @@ export function BloqueIA({ hechos }: Props) {
     void generarInforme(construirPrompt(hechos, i18n.idioma, formatear));
   };
 
+  // Reportar oculta la respuesta en el acto y, si hay formulario, la envía sin salir de la app (lo pide Google Play).
+  const enviarYOcultar = async (texto: string, configurado: boolean) => {
+    reportar();
+    if (!configurado) {
+      setEnvioReporte('local');
+      return;
+    }
+    setEnvioReporte('enviando');
+    try {
+      await enviarReporte({ texto, idioma: i18n.idioma, modelo: modelo.nombre });
+      setEnvioReporte('enviado');
+    } catch {
+      setEnvioReporte('fallo');
+    }
+  };
+
   const pedirReporte = () => {
-    alerta(i18n.t('ia.reportar_titulo'), i18n.t('ia.reportar_mensaje'), [
+    const configurado = formularioConfigurado();
+    const texto = informe.texto;
+    alerta(i18n.t('ia.reportar_titulo'), i18n.t(configurado ? 'ia.reportar_mensaje' : 'ia.reportar_mensaje_local'), [
       { text: i18n.t('comun.cancelar'), style: 'cancel' },
-      {
-        text: i18n.t('ia.reportar_enviar'),
-        onPress: () => {
-          if (CORREO_REPORTES) {
-            const asunto = encodeURIComponent('Pocketant: respuesta de la IA');
-            const cuerpo = encodeURIComponent(informe.texto);
-            void Linking.openURL(`mailto:${CORREO_REPORTES}?subject=${asunto}&body=${cuerpo}`).catch(() => {});
-          }
-          reportar();
-        },
-      },
+      { text: i18n.t('ia.reportar_enviar'), onPress: () => void enviarYOcultar(texto, configurado) },
     ]);
   };
 
@@ -167,7 +188,9 @@ export function BloqueIA({ hechos }: Props) {
             ? i18n.t('ia.no_compatible_ram', { ram: formatearRam(ram), minimo: RAM_MINIMA_ETIQUETA })
             : motivo === 'plataforma'
               ? i18n.t('ia.no_compatible_plataforma')
-              : i18n.t('ia.no_compatible_generico')}
+              : motivo === 'procesador'
+                ? i18n.t('ia.no_compatible_procesador')
+                : i18n.t('ia.no_compatible_generico')}
         </Texto>
       </Marco>
     );
@@ -262,7 +285,9 @@ export function BloqueIA({ hechos }: Props) {
     <Marco clave="modelo" encabezado={encabezado}>
       {informe.reportado ? (
         <Revelar>
-          <Texto variante="secundario">{i18n.t('ia.reportar_gracias')}</Texto>
+          <Texto variante="secundario" accessibilityLiveRegion="polite">
+            {i18n.t(TEXTO_REPORTE[envioReporte])}
+          </Texto>
         </Revelar>
       ) : null}
 

@@ -1,3 +1,5 @@
+import { fetchConTiempoMaximo } from '@/datos/red';
+
 import { ErrorDrive } from './errores';
 
 /** Nombre del archivo con todos los datos dentro de la carpeta oculta de la app en Drive. */
@@ -40,13 +42,13 @@ export function crearClienteDrive({ obtenerToken, descartarToken, fetchFn = fetc
     const intentar = async (): Promise<{ respuesta: Response; token: string }> => {
       const token = await obtenerToken();
       try {
-        const respuesta = await fetchFn(url, {
+        const respuesta = await fetchConTiempoMaximo(fetchFn, url, {
           ...init,
           headers: { ...(init.headers as Record<string, string> | undefined), Authorization: `Bearer ${token}` },
         });
         return { respuesta, token };
       } catch {
-        // `fetch` solo rechaza si no hubo respuesta: sin conexión, DNS, tiempo agotado.
+        // Solo rechaza si no hubo respuesta: sin conexión, DNS o tiempo agotado (30 s).
         throw new ErrorDrive('error.drive.red');
       }
     };

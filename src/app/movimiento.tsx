@@ -34,6 +34,7 @@ import {
 import type { Movimiento, PeriodoRecurrencia, TipoMovimiento } from '@/dominio/tipos';
 import { mensajeDeError } from '@/i18n/errores';
 import { useRelleno } from '@/hooks/useRelleno';
+import { useNotificaciones } from '@/notificaciones/NotificacionesProvider';
 import { estiloDeFuente } from '@/tema/fuentes';
 import { radios, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
@@ -45,6 +46,7 @@ function Formulario({ existente, tipoInicial }: { existente?: Movimiento; tipoIn
   const { ajustes, colores, moneda, i18n } = useAjustes();
   const { alerta } = useDialogo();
   const { guardarMovimiento, eliminarMovimiento } = useDatos();
+  const { ofrecerAvisosDeCobros } = useNotificaciones();
 
   const tipo = existente?.tipo ?? tipoInicial;
   const color = tipo === 'ingreso' ? colores.ingreso : colores.gasto;
@@ -87,6 +89,8 @@ function Formulario({ existente, tipoInicial }: { existente?: Movimiento; tipoIn
     try {
       await guardarMovimiento(entrada, existente?.id);
       router.back();
+      // Un gasto recurrente es el momento en que un aviso antes del cobro tiene sentido: ahí se ofrece el permiso.
+      if (entrada.recurrente && entrada.tipo === 'gasto') ofrecerAvisosDeCobros();
     } catch (fallo) {
       setOcupado(false);
       alerta(i18n.t('mov.error_guardar'), mensajeDeError(fallo, i18n));

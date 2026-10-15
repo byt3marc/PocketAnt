@@ -5,7 +5,7 @@ import { useAjustes } from '@/ajustes/AjustesProvider';
 import { formatearDia } from '@/dominio/fechas';
 import { describirRecurrencia } from '@/dominio/movimiento';
 import type { Movimiento } from '@/dominio/tipos';
-import { radios, type Paleta } from '@/tema/paleta';
+import { ONDA, radios, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
 import { Icono } from './Icono';
@@ -38,7 +38,7 @@ function ItemMovimientoBase({ movimiento, hoy, onPress }: Props) {
         recurrencia: recurrencia ? `, ${recurrencia}` : '',
       })}
       onPress={() => onPress(movimiento)}
-      android_ripple={{ color: 'rgba(128,128,128,0.15)' }}
+      android_ripple={ONDA}
       style={({ pressed }) => [estilos.fila, pressed && { opacity: 0.7 }]}
     >
       <View style={[estilos.icono, esIngreso ? estilos.iconoIngreso : estilos.iconoGasto]}>

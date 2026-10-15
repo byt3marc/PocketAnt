@@ -1,18 +1,17 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+import { moduloAutorizacion } from '../../../../modules/autorizacion-google';
+
 /** Único permiso que se pide: la carpeta oculta de esta app en el Drive del usuario. No es un permiso sensible. */
 export const SCOPE_DRIVE_APPDATA = 'https://www.googleapis.com/auth/drive.appdata';
 
 /**
- * ID de cliente OAuth de tipo **Web** creado en Google Cloud (es público, no un secreto). Se pone en
- * `app.json` → `expo.extra.googleWebClientId`. Mientras esté vacío, la sincronización queda desactivada
- * y Ajustes muestra «Configuración pendiente».
+ * Drive se enciende en `app.json` → `expo.extra.driveActivado: true`, **después** de registrar la app en Google Cloud
+ * (cliente OAuth de Android con el paquete y el SHA-1 de la firma; ver Info.md). Mientras esté en `false`, Ajustes no
+ * muestra nada de Drive: una fila que no funciona confunde al usuario y a la revisión de Google Play.
  */
-export const WEB_CLIENT_ID: string = (() => {
-  const valor = Constants.expoConfig?.extra?.googleWebClientId;
-  return typeof valor === 'string' ? valor.trim() : '';
-})();
+export const DRIVE_ACTIVADO = Constants.expoConfig?.extra?.driveActivado === true;
 
-/** Solo Android por ahora (iOS necesita además el esquema de URL de su propio cliente de Google). */
-export const DRIVE_DISPONIBLE = Platform.OS === 'android' && WEB_CLIENT_ID !== '';
+/** Solo Android por ahora, y solo en un build con el módulo nativo `autorizacion-google`. */
+export const DRIVE_DISPONIBLE = Platform.OS === 'android' && moduloAutorizacion !== null && DRIVE_ACTIVADO;

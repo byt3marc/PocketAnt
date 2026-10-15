@@ -18,7 +18,12 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "output": "static",
@@ -73,14 +78,15 @@
             "minSdkVersion": 26
           }
         }
-      ]
+      ],
+      "./plugins/reglas-respaldo"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {
-      "googleWebClientId": "",
+      "driveActivado": false,
       "router": {},
       "eas": {
         "projectId": "2e1c469f-b807-4fc0-935e-ee785b7ac411"

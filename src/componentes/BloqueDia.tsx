@@ -10,6 +10,7 @@ import { radios, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
 import { FlechaPeriodo } from './FlechaPeriodo';
+import { Icono, type NombreIcono } from './Icono';
 import { Tarjeta } from './Tarjeta';
 import { Texto } from './Texto';
 import { resumirMotivos } from './TooltipDia';
@@ -69,7 +70,10 @@ function ColumnaBarra({ etiqueta, monto, fraccion, color, compacto, testID }: Pr
   );
 }
 
-/** Ingresos y gastos de un día en dos barras verticales, y cómo van los gastos frente al día anterior. */
+/**
+ * Ingresos y gastos de un día en dos barras verticales y, debajo, el balance del día: «Vas $8.00 arriba hoy» en verde,
+ * «abajo» en rojo o «a la par», con un icono que lo refuerza (el texto dice lo mismo: no depende solo del color).
+ */
 export function BloqueDia({ movimientos, compacto = false, navegable = false }: Props) {
   const estilos = useEstilos(crearEstilos);
   const { formatear, i18n } = useAjustes();
@@ -79,7 +83,7 @@ export function BloqueDia({ movimientos, compacto = false, navegable = false }: 
 
   const clave = sumarDias(hoy, -desfase);
   const esHoy = desfase === 0;
-  const { dia, difGastos } = resumirDia(movimientos, clave);
+  const { dia, balance } = resumirDia(movimientos, clave);
 
   const masAntigua = fechaMasAntigua(movimientos);
   const puedeRetroceder = navegable && masAntigua !== null && masAntigua < clave;
@@ -93,19 +97,22 @@ export function BloqueDia({ movimientos, compacto = false, navegable = false }: 
   const hayMovimientos = dia.movimientos.length > 0;
   let pie: string;
   let colorPie: 'ingreso' | 'gasto' | 'textoTenue' = 'textoTenue';
+  let iconoPie: NombreIcono | null = null;
   if (movimientos.length === 0) {
     pie = i18n.t('grafica.esqueleto');
   } else if (!hayMovimientos) {
     pie = i18n.t(esHoy ? 'dia.sin_movimientos_hoy' : 'tooltip.sin_movimientos');
+  } else if (balance > 0) {
+    pie = i18n.t(esHoy ? 'dia.arriba_hoy' : 'dia.arriba', { monto: formatear(balance) });
+    colorPie = 'ingreso';
+    iconoPie = 'trending-up';
+  } else if (balance < 0) {
+    pie = i18n.t(esHoy ? 'dia.abajo_hoy' : 'dia.abajo', { monto: formatear(-balance) });
+    colorPie = 'gasto';
+    iconoPie = 'trending-down';
   } else {
-    const ref = i18n.t(esHoy ? 'dia.ref_ayer' : 'dia.ref_anterior');
-    if (difGastos === 0) {
-      pie = i18n.t('dia.igual', { ref });
-    } else {
-      pie = i18n.t(difGastos < 0 ? 'dia.menos' : 'dia.mas', { monto: formatear(Math.abs(difGastos)), ref });
-      // Gastar menos que el día anterior es buena noticia (verde); gastar más, no.
-      colorPie = difGastos < 0 ? 'ingreso' : 'gasto';
-    }
+    pie = i18n.t(esHoy ? 'dia.par_hoy' : 'dia.par');
+    iconoPie = 'remove';
   }
 
   const titulo = navegable ? i18n.t('est.diaria') : i18n.t('fecha.hoy');
@@ -154,9 +161,23 @@ export function BloqueDia({ movimientos, compacto = false, navegable = false }: 
               {resumirMotivos(dia, i18n)}
             </Texto>
           ) : null}
-          <Texto variante="pequeno" color={colorPie} negrita={colorPie !== 'textoTenue'} numberOfLines={2}>
-            {pie}
-          </Texto>
+          <View style={estilos.balance} testID={iconoPie ? `balance-${iconoPie}` : undefined}>
+            {iconoPie ? (
+              // Solo refuerza el texto: los lectores de pantalla leen la frase, no el icono.
+              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={estilos.iconoBalance}>
+                <Icono nombre={iconoPie} tamano={16} color={colorPie} />
+              </View>
+            ) : null}
+            <Texto
+              variante="pequeno"
+              color={colorPie}
+              negrita={colorPie !== 'textoTenue'}
+              numberOfLines={2}
+              style={estilos.textoBalance}
+            >
+              {pie}
+            </Texto>
+          </View>
         </View>
       </View>
     </Tarjeta>
@@ -188,4 +209,8 @@ const crearEstilos = (c: Paleta) =>
     leyenda: { alignSelf: 'stretch', alignItems: 'center', gap: 1 },
     numero: { fontVariant: ['tabular-nums'] },
     pie: { gap: 2 },
+    // Arriba, no centrado: si el texto ocupa dos líneas (tarjeta angosta), el icono acompaña a la primera.
+    balance: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
+    iconoBalance: { marginTop: -1 },
+    textoBalance: { flexShrink: 1 },
   });

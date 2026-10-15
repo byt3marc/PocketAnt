@@ -18,6 +18,7 @@ interface ModuloNativo {
   iniciar: (textos: TextosNotificacion) => void;
   actualizar: (fraccion: number, texto: string) => void;
   terminar: (titulo: string, texto: string, mostrarAviso: boolean) => void;
+  md5?: (ruta: string) => Promise<string>;
   addListener: (
     evento: 'onAccion',
     escucha: (datos: { accion: AccionNotificacion }) => void,
@@ -50,3 +51,10 @@ export function alAccion(escucha: (accion: AccionNotificacion) => void): () => v
   const suscripcion = nativo?.addListener('onAccion', (datos) => escucha(datos.accion));
   return () => suscripcion?.remove();
 }
+
+/**
+ * MD5 (hexadecimal, minúsculas) de un archivo, calculado en un hilo nativo de E/S: no congela la app aunque el archivo
+ * pese gigas. `null` si este build no lo trae (entonces se usa el de expo-file-system, que sí bloquea).
+ */
+export const md5DeArchivo: ((ruta: string) => Promise<string>) | null =
+  typeof nativo?.md5 === 'function' ? (ruta) => nativo.md5!(ruta) : null;

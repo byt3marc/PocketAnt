@@ -10,7 +10,7 @@ import { Icono } from '@/componentes/Icono';
 import { Texto } from '@/componentes/Texto';
 import { MONEDA_AUTOMATICA, MONEDAS, nombreDeMoneda, resolverMoneda } from '@/dominio/moneda';
 import { useRelleno } from '@/hooks/useRelleno';
-import type { Paleta } from '@/tema/paleta';
+import { ONDA, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
 interface Opcion {
@@ -71,7 +71,7 @@ export default function Moneda() {
               cambiarMoneda(item.ajuste);
               setEligiendo(true);
             }}
-            android_ripple={{ color: 'rgba(128,128,128,0.15)' }}
+            android_ripple={ONDA}
             style={({ pressed }) => [estilos.fila, pressed && { opacity: 0.7 }]}
           >
             <View style={estilos.texto}>

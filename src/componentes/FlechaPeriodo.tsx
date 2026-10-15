@@ -1,10 +1,11 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import { radios, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
 import { Icono } from './Icono';
+import { ESCALA_ICONO, PresionableEscala } from './PresionableEscala';
 
 interface Props {
   sentido: 'atras' | 'adelante';
@@ -19,7 +20,7 @@ export function FlechaPeriodo({ sentido, habilitada, onPress, etiqueta }: Props)
   const estilos = useEstilos(crearEstilos);
   const { i18n } = useAjustes();
   return (
-    <Pressable
+    <PresionableEscala
       accessibilityRole="button"
       accessibilityLabel={
         etiqueta ?? i18n.t(sentido === 'atras' ? 'grafica.periodo_anterior' : 'grafica.periodo_siguiente')
@@ -28,10 +29,11 @@ export function FlechaPeriodo({ sentido, habilitada, onPress, etiqueta }: Props)
       disabled={!habilitada}
       onPress={onPress}
       hitSlop={8}
+      escala={ESCALA_ICONO}
       style={[estilos.flecha, !habilitada && { opacity: 0.3 }]}
     >
       <Icono nombre={sentido === 'atras' ? 'chevron-back' : 'chevron-forward'} tamano={18} />
-    </Pressable>
+    </PresionableEscala>
   );
 }
 

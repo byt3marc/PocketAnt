@@ -5,6 +5,7 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
 
+import { ESCALA_ICONO, PresionableEscala } from './PresionableEscala';
 import { Texto } from './Texto';
 
 export interface OpcionesAviso {
@@ -127,15 +128,16 @@ export function AvisoProvider({ children }: { children: ReactNode }) {
                 ) : null}
               </View>
             </Pressable>
-            <Pressable
+            <PresionableEscala
               accessibilityRole="button"
               accessibilityLabel={i18n.t('aviso.cerrar')}
               onPress={ocultar}
               hitSlop={10}
+              escala={ESCALA_ICONO}
               style={estilos.cerrar}
             >
               <Ionicons name="close" size={20} color={COLOR_TEXTO} />
-            </Pressable>
+            </PresionableEscala>
           </Animated.View>
         </View>
       ) : null}

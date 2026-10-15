@@ -47,7 +47,7 @@ function crear(inicial: Partial<Pick<Disco, 'parcial' | 'md5'>> = {}, modo: Modo
       disco.parcial = 0;
       disco.borrados += 1;
     },
-    md5Parcial: () => disco.md5,
+    md5Parcial: async () => disco.md5,
     promoverParcial: () => {
       disco.promovido = true;
       disco.parcial = 0;
@@ -192,7 +192,7 @@ describe('crearDescarga', () => {
     const orden: string[] = [];
     const { archivos } = crear();
     const original = archivos.md5Parcial;
-    archivos.md5Parcial = () => {
+    archivos.md5Parcial = async () => {
       orden.push('md5');
       return original();
     };

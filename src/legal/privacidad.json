@@ -1,0 +1,150 @@
+{
+  "actualizada": "2026-10-15",
+  "contacto": "",
+  "es": {
+    "titulo": "Política de privacidad",
+    "fecha": "Última actualización: 15 de octubre de 2026",
+    "intro": "Pocketant es una app para anotar tus ingresos y gastos. Está hecha para que tus datos se queden contigo: no tiene cuentas, anuncios ni analítica, y no usa servidores propios.",
+    "secciones": [
+      {
+        "titulo": "Qué datos guarda y dónde",
+        "parrafos": [
+          "Los movimientos que anotas (monto, motivo, fecha y si se repite) y tus ajustes (tema, idioma, moneda, fuente y avisos) se guardan solo en tu teléfono. Nadie más los puede ver, tampoco quien hace la app."
+        ]
+      },
+      {
+        "titulo": "Qué no recogemos",
+        "parrafos": [
+          "No pedimos registro ni cuenta. No hay anuncios, analítica ni seguimiento, y no vendemos ni compartimos datos con nadie. La app no usa tu ubicación, contactos, fotos, cámara ni micrófono."
+        ]
+      },
+      {
+        "titulo": "Avisos",
+        "parrafos": [
+          "Los recordatorios y los avisos de cobros son notificaciones que programa el propio teléfono: no pasan por internet. Solo aparecen si les das permiso, y puedes apagarlos en Ajustes."
+        ]
+      },
+      {
+        "titulo": "Análisis con IA (opcional)",
+        "parrafos": [
+          "El análisis por reglas se hace en el teléfono. Si activas la IA local, la app descarga un modelo de lenguaje (Gemma 4 E2B, unos 2.6 GB) desde Hugging Face (huggingface.co); como en cualquier descarga, ese servicio ve la dirección IP de tu conexión.",
+          "El modelo funciona dentro de tu teléfono: tus datos no se envían a ningún servidor para generar el informe. Puedes eliminar el modelo cuando quieras desde Ajustes."
+        ]
+      },
+      {
+        "titulo": "Reportar una respuesta de la IA (opcional)",
+        "parrafos": [
+          "Si reportas una respuesta de la IA (por ser ofensiva, peligrosa o incorrecta), se envía solo el texto de esa respuesta, que puede incluir cifras de tus gastos, junto con la versión de la app, el idioma y el nombre del modelo. Se envía a un formulario de Google Forms que usamos para revisar los reportes y mejorar la app. No se envía nada más ni se asocia a tu identidad, y la app te avisa antes de enviarlo.",
+          "Guardamos los reportes solo el tiempo necesario para revisarlos. Google procesa el formulario según su propia política de privacidad."
+        ]
+      },
+      {
+        "titulo": "Copias de seguridad",
+        "parrafos": [
+          "«Exportar datos» crea un archivo JSON que compartes tú, donde tú elijas.",
+          "Si tienes activada la copia de seguridad de Android, el sistema puede incluir tus movimientos y ajustes en la copia cifrada de tu cuenta de Google, para recuperarlos en otro teléfono. El modelo de IA no se incluye. Esa copia la gestiona Android y la controlas desde los ajustes del teléfono."
+        ]
+      },
+      {
+        "titulo": "Google Drive (opcional)",
+        "parrafos": [
+          "Si conectas tu cuenta de Google Drive, se guarda una copia de tus datos en una carpeta oculta de tu propio Drive a la que solo accede esta app, y nunca en otro lugar. La app solo pide permiso para esa carpeta: no puede ver tus otros archivos. Puedes desconectarla cuando quieras.",
+          "El uso que Pocketant hace de la información recibida de las API de Google cumple la Política de Datos de Usuario de los Servicios de API de Google, incluidos los requisitos de Uso Limitado."
+        ]
+      },
+      {
+        "titulo": "Borrar tus datos",
+        "parrafos": [
+          "Puedes borrar cualquier movimiento desde la app. Al borrarlo, la app lo conserva marcado como borrado para que no reaparezca al importar o sincronizar.",
+          "Para borrarlo todo: Ajustes del teléfono → Apps → Pocketant → Almacenamiento → Borrar datos, o desinstala la app. Si guardaste una copia en Google Drive, puedes borrarla desde Drive (Configuración → Administrar apps → Pocketant → Borrar datos ocultos de la app)."
+        ]
+      },
+      {
+        "titulo": "Menores",
+        "parrafos": [
+          "Pocketant no está dirigida a niños y no recoge datos de nadie, tampoco de menores."
+        ]
+      },
+      {
+        "titulo": "Cambios",
+        "parrafos": [
+          "Si esta política cambia, la nueva versión se publicará aquí y en la app, con su fecha."
+        ]
+      }
+    ],
+    "contacto": "Contacto: {correo}"
+  },
+  "en": {
+    "titulo": "Privacy policy",
+    "fecha": "Last updated: October 15, 2026",
+    "intro": "Pocketant is an app to keep track of your income and expenses. It's built so your data stays with you: there are no accounts, ads or analytics, and it has no servers of its own.",
+    "secciones": [
+      {
+        "titulo": "What data it keeps and where",
+        "parrafos": [
+          "The entries you add (amount, reason, date and whether they repeat) and your settings (theme, language, currency, font and reminders) are stored only on your phone. Nobody else can see them, including the app's developer."
+        ]
+      },
+      {
+        "titulo": "What we don't collect",
+        "parrafos": [
+          "There's no sign-up or account. There are no ads, analytics or tracking, and we don't sell or share data with anyone. The app doesn't use your location, contacts, photos, camera or microphone."
+        ]
+      },
+      {
+        "titulo": "Reminders",
+        "parrafos": [
+          "Reminders and upcoming-charge alerts are notifications scheduled by the phone itself: they don't go through the internet. They only show up if you allow them, and you can turn them off in Settings."
+        ]
+      },
+      {
+        "titulo": "AI analysis (optional)",
+        "parrafos": [
+          "The rule-based analysis runs on your phone. If you turn on the local AI, the app downloads a language model (Gemma 4 E2B, about 2.6 GB) from Hugging Face (huggingface.co); as with any download, that service sees your connection's IP address.",
+          "The model runs inside your phone: your data isn't sent to any server to generate the report. You can delete the model at any time from Settings."
+        ]
+      },
+      {
+        "titulo": "Reporting an AI response (optional)",
+        "parrafos": [
+          "If you report an AI response (because it's offensive, harmful or wrong), only the text of that response is sent, which may include your spending figures, along with the app version, the language and the model name. It goes to a Google Forms form we use to review reports and improve the app. Nothing else is sent, it isn't linked to your identity, and the app tells you before sending it.",
+          "We keep reports only as long as needed to review them. Google processes the form under its own privacy policy."
+        ]
+      },
+      {
+        "titulo": "Backups",
+        "parrafos": [
+          "“Export data” creates a JSON file that you share yourself, wherever you choose.",
+          "If Android backup is on, the system may include your entries and settings in your Google account's encrypted backup, so you can restore them on another phone. The AI model isn't included. That backup is managed by Android and you control it from the phone's settings."
+        ]
+      },
+      {
+        "titulo": "Google Drive (optional)",
+        "parrafos": [
+          "If you connect your Google Drive account, a copy of your data is stored in a hidden folder of your own Drive that only this app can access, and never anywhere else. The app only asks for access to that folder: it can't see your other files. You can disconnect it at any time.",
+          "Pocketant's use of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements."
+        ]
+      },
+      {
+        "titulo": "Deleting your data",
+        "parrafos": [
+          "You can delete any entry from the app. When you do, the app keeps it marked as deleted so it doesn't come back when importing or syncing.",
+          "To delete everything: phone Settings → Apps → Pocketant → Storage → Clear data, or uninstall the app. If you saved a copy to Google Drive, you can delete it from Drive (Settings → Manage apps → Pocketant → Delete hidden app data)."
+        ]
+      },
+      {
+        "titulo": "Children",
+        "parrafos": [
+          "Pocketant isn't directed at children and doesn't collect data from anyone, minors included."
+        ]
+      },
+      {
+        "titulo": "Changes",
+        "parrafos": [
+          "If this policy changes, the new version will be published here and in the app, with its date."
+        ]
+      }
+    ],
+    "contacto": "Contact: {correo}"
+  }
+}

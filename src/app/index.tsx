@@ -1,13 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useIsFocused, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-  type LayoutChangeEvent,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import { BloqueDia } from '@/componentes/BloqueDia';
@@ -15,6 +8,7 @@ import { BloqueGrafica } from '@/componentes/BloqueGrafica';
 import { Boton } from '@/componentes/Boton';
 import { Icono } from '@/componentes/Icono';
 import { Logo } from '@/componentes/Logo';
+import { ESCALA_ICONO, PresionableEscala } from '@/componentes/PresionableEscala';
 import { Tarjeta } from '@/componentes/Tarjeta';
 import { TarjetaSaldo } from '@/componentes/TarjetaSaldo';
 import { Texto } from '@/componentes/Texto';
@@ -40,6 +34,8 @@ export default function Inicio() {
   const { width } = useWindowDimensions();
   const { movimientos, totales } = useDatos();
   const { i18n } = useAjustes();
+  // Con otra pantalla encima, las animaciones en bucle (historial y esqueleto de la gráfica) se detienen.
+  const enfocada = useIsFocused();
 
   const enColumnas = width >= ANCHO_MINIMO_DOS_COLUMNAS;
   const cantidad = movimientos.length;
@@ -83,6 +79,7 @@ export default function Inicio() {
       movimientos={movimientos}
       alto={altoGrafica}
       compacto={enColumnas}
+      animar={enfocada}
     />
   );
 
@@ -103,24 +100,26 @@ export default function Inicio() {
           <Texto variante="titulo">{NOMBRE_APP}</Texto>
         </View>
         <View style={estilos.botones}>
-          <Pressable
+          <PresionableEscala
             accessibilityRole="button"
             accessibilityLabel={i18n.t('inicio.analisis_accesible')}
             onPress={() => router.push('/analisis')}
             hitSlop={8}
+            escala={ESCALA_ICONO}
             style={estilos.botonRedondo}
           >
             <Icono nombre="sparkles-outline" tamano={22} />
-          </Pressable>
-          <Pressable
+          </PresionableEscala>
+          <PresionableEscala
             accessibilityRole="button"
             accessibilityLabel={i18n.t('inicio.ajustes_accesible')}
             onPress={() => router.push('/ajustes')}
             hitSlop={8}
+            escala={ESCALA_ICONO}
             style={estilos.botonRedondo}
           >
             <Icono nombre="settings-outline" tamano={22} />
-          </Pressable>
+          </PresionableEscala>
         </View>
       </View>
 
@@ -180,7 +179,7 @@ export default function Inicio() {
       </Pressable>
 
       {/* Ocupa lo que queda de pantalla; si el resto ya llena el alto, el Home hace scroll. */}
-      <VistaPreviaHistorial movimientos={movimientos} onAbrir={abrirEstadisticas} />
+      <VistaPreviaHistorial movimientos={movimientos} onAbrir={abrirEstadisticas} animar={enfocada} />
     </ScrollView>
   );
 }

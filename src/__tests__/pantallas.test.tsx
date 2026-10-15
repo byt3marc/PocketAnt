@@ -9,12 +9,12 @@ import type { Movimiento } from '@/dominio/tipos';
 import { AvisoProvider } from '@/componentes/AvisoProvider';
 import { DialogoProvider } from '@/componentes/DialogoProvider';
 import { IAProvider } from '@/ia/IAProvider';
-import { crearServicioFalso } from '@/ia/servicioFalso';
+import { crearServicioFalso } from '@/pruebas/servicioIAFalso';
 
 const mockPush = jest.fn();
 let mockMovimientos: Movimiento[] = [];
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }), useIsFocused: () => true }));
 jest.mock('react-native-safe-area-context', () => {
   const { createContext } = jest.requireActual('react');
   const margenes = { top: 0, bottom: 0, left: 0, right: 0 };

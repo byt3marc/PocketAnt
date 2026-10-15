@@ -88,11 +88,19 @@ export function crearRepositorioSqlite(db: SQLiteDatabase): RepositorioMovimient
 
     async fusionar(entrantes) {
       let resumen = { nuevos: 0, actualizados: 0, eliminados: 0, sinCambios: 0 };
+      // No es exclusiva a propósito: con `withExclusiveTransactionAsync`, un guardado del usuario que coincida con una
+      // sincronización fallaría con «database is locked».
       await db.withTransactionAsync(async () => {
         const locales = (await db.getAllAsync<Fila>('SELECT * FROM movimientos')).map(aMovimiento);
         const plan = planificarFusion(locales, entrantes);
-        for (const movimiento of plan.aplicar) {
-          await db.runAsync(SQL_GUARDAR, parametros(movimiento));
+        // Una sola sentencia preparada para todas las filas (una importación grande no la recompila por fila).
+        const sentencia = await db.prepareAsync(SQL_GUARDAR);
+        try {
+          for (const movimiento of plan.aplicar) {
+            await sentencia.executeAsync(parametros(movimiento));
+          }
+        } finally {
+          await sentencia.finalizeAsync();
         }
         resumen = resumirPlan(plan);
       });
