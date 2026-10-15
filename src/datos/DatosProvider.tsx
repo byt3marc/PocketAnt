@@ -26,6 +26,8 @@ interface ContextoDatos {
   /** Sin `id` crea un movimiento; con `id` edita el existente. */
   guardarMovimiento: (entrada: EntradaMovimiento, id?: string) => Promise<void>;
   eliminarMovimiento: (id: string) => Promise<void>;
+  /** Borra lógicamente todos los movimientos; la sincronización propaga el borrado a la nube. */
+  limpiarDatos: () => Promise<void>;
   exportar: () => Promise<ResultadoExportacion>;
   /** `null` si el usuario canceló la selección del archivo. */
   importar: () => Promise<ResultadoImportacion | null>;
@@ -92,6 +94,12 @@ export function DatosProvider({ repositorio, proveedorSync, children }: Props) {
 
     eliminarMovimiento: async (id) => {
       await repositorio.eliminar(id, new Date());
+      await recargar();
+      setVersionLocal((v) => v + 1);
+    },
+
+    limpiarDatos: async () => {
+      await repositorio.limpiarTodo(new Date());
       await recargar();
       setVersionLocal((v) => v + 1);
     },

@@ -177,6 +177,13 @@ export const es = {
   'ajustes.exportar_desc': 'Guarda una copia en un archivo JSON y compártela.',
   'ajustes.importar': 'Importar datos',
   'ajustes.importar_desc': 'Combina un archivo JSON con tus datos actuales; no borra nada.',
+  'ajustes.borrar': 'Borrar datos',
+  'ajustes.borrar_desc': 'Elimina todos tus ingresos y gastos, incluidos los recurrentes.',
+  'ajustes.borrar_titulo': '¿Borrar todos los datos?',
+  'ajustes.borrar_mensaje_uno':
+    'Se borrará {n} movimiento. Si tienes Drive conectado, el borrado llegará también a tu copia de la nube.',
+  'ajustes.borrar_mensaje_otros':
+    'Se borrarán {n} movimientos. Si tienes Drive conectado, el borrado llegará también a tu copia de la nube.',
   'ajustes.acerca': 'Acerca de',
   'ajustes.acerca_desc':
     'Tus datos se guardan en este dispositivo. Sin cuentas, anuncios ni analítica, y sin servidores propios.',
@@ -207,6 +214,7 @@ export const es = {
   'error.drive.servicio': 'Google Drive respondió con un error ({codigo}). Se reintentará más tarde.',
   'ajustes.error_exportar': 'No se pudo exportar',
   'ajustes.error_importar': 'No se pudo importar',
+  'ajustes.error_borrar': 'No se pudieron borrar los datos',
   'ajustes.importacion_completa': 'Importación completa',
   'ajustes.importacion_vacia': 'El archivo no tenía movimientos.',
   'importar.nuevos_uno': '{n} nuevo',

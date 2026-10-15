@@ -14,11 +14,13 @@ interface Props {
   /** Valor actual a la derecha (p. ej. "Automática · S/"). */
   valor?: string;
   onPress?: () => void;
+  /** Fila de acción destructiva: icono y título en rojo. */
+  peligro?: boolean;
   deshabilitada?: boolean;
   cargando?: boolean;
 }
 
-export function FilaAjuste({ icono, titulo, descripcion, valor, onPress, deshabilitada, cargando }: Props) {
+export function FilaAjuste({ icono, titulo, descripcion, valor, onPress, peligro, deshabilitada, cargando }: Props) {
   const estilos = useEstilos(crearEstilos);
   const inactiva = deshabilitada || cargando || !onPress;
 
@@ -31,11 +33,11 @@ export function FilaAjuste({ icono, titulo, descripcion, valor, onPress, deshabi
       android_ripple={ONDA}
       style={({ pressed }) => [estilos.fila, pressed && { opacity: 0.7 }, deshabilitada && { opacity: 0.55 }]}
     >
-      <View style={estilos.icono}>
-        <Icono nombre={icono} tamano={20} color="primario" />
+      <View style={[estilos.icono, peligro && estilos.iconoPeligro]}>
+        <Icono nombre={icono} tamano={20} color={peligro ? 'gasto' : 'primario'} />
       </View>
       <View style={estilos.texto}>
-        <Texto variante="cuerpo" negrita>
+        <Texto variante="cuerpo" negrita color={peligro ? 'gasto' : undefined}>
           {titulo}
         </Texto>
         {descripcion ? <Texto variante="pequeno">{descripcion}</Texto> : null}
@@ -63,6 +65,7 @@ const crearEstilos = (c: Paleta) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+    iconoPeligro: { backgroundColor: c.gastoSuave },
     texto: { flex: 1, gap: 2 },
     valor: { maxWidth: '38%' },
   });

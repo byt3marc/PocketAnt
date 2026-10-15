@@ -39,6 +39,7 @@ google-services.json
 GoogleService-Info.plist
 service-account*.json
 credentials.json
+.claude/skills/
 .claude/settings.local.json
 
 # typescript

@@ -223,4 +223,16 @@ describe('repositorio en memoria', () => {
     const todos = await repo.listarTodos();
     expect(todos[0]).toMatchObject({ id: 'a', eliminado: true, actualizadoEn: '2026-10-13T00:00:00.000Z' });
   });
+
+  it('limpiarTodo borra lógicamente todo lo activo y conserva las marcas previas', async () => {
+    const repo = crearRepositorioMemoria([mov('a'), mov('b')]);
+    await repo.eliminar('a', new Date('2026-10-12T00:00:00.000Z'));
+
+    await repo.limpiarTodo(new Date('2026-10-13T00:00:00.000Z'));
+
+    expect(await repo.listarActivos()).toHaveLength(0);
+    const todos = (await repo.listarTodos()).sort((x, y) => (x.id < y.id ? -1 : 1));
+    expect(todos[0]).toMatchObject({ id: 'a', eliminado: true, actualizadoEn: '2026-10-12T00:00:00.000Z' });
+    expect(todos[1]).toMatchObject({ id: 'b', eliminado: true, actualizadoEn: '2026-10-13T00:00:00.000Z' });
+  });
 });

@@ -29,6 +29,10 @@ export function crearRepositorioMemoria(inicial: readonly Movimiento[] = []): Re
       const actual = almacen.get(id);
       if (actual) almacen.set(id, { ...actual, eliminado: true, actualizadoEn: ahora.toISOString() });
     },
+    async limpiarTodo(ahora) {
+      const marca = ahora.toISOString();
+      for (const [id, m] of almacen) if (!m.eliminado) almacen.set(id, { ...m, eliminado: true, actualizadoEn: marca });
+    },
     async fusionar(entrantes) {
       const plan = planificarFusion([...almacen.values()], entrantes);
       for (const m of plan.aplicar) almacen.set(m.id, m);

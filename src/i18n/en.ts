@@ -175,6 +175,13 @@ export const en: Record<ClaveTexto, string> = {
   'ajustes.exportar_desc': 'Save a copy as a JSON file and share it.',
   'ajustes.importar': 'Import data',
   'ajustes.importar_desc': 'Merges a JSON file with your current data; nothing is deleted.',
+  'ajustes.borrar': 'Delete data',
+  'ajustes.borrar_desc': 'Deletes all your income and expenses, including recurring ones.',
+  'ajustes.borrar_titulo': 'Delete all data?',
+  'ajustes.borrar_mensaje_uno':
+    'This will delete {n} movement. If Drive is connected, the deletion will also reach your cloud copy.',
+  'ajustes.borrar_mensaje_otros':
+    'This will delete {n} movements. If Drive is connected, the deletion will also reach your cloud copy.',
   'ajustes.acerca': 'About',
   'ajustes.acerca_desc':
     'Your data is stored on this device. No accounts, ads or analytics, and no servers of our own.',
@@ -205,6 +212,7 @@ export const en: Record<ClaveTexto, string> = {
   'error.drive.servicio': 'Google Drive returned an error ({codigo}). It will be retried later.',
   'ajustes.error_exportar': 'Could not export',
   'ajustes.error_importar': 'Could not import',
+  'ajustes.error_borrar': "Couldn't delete your data",
   'ajustes.importacion_completa': 'Import complete',
   'ajustes.importacion_vacia': 'The file had no entries.',
   'importar.nuevos_uno': '{n} new',

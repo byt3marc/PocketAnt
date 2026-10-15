@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useEffect, useEffectEvent, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -101,7 +100,7 @@ export default function Ajustes() {
   const estilos = useEstilos(crearEstilos);
   const relleno = useRelleno(true);
   const { ajustes, moneda, cambiarTema, cambiarIdioma, cambiarNotificaciones, i18n } = useAjustes();
-  const { exportar, importar } = useDatos();
+  const { exportar, importar, movimientos, limpiarDatos } = useDatos();
   const { permiso, pedirPermiso, pedirPermisoSiHaceFalta, abrirAjustesDelSistema } = useNotificaciones();
   const ia = useIA();
   const { alerta } = useDialogo();
@@ -109,7 +108,7 @@ export default function Ajustes() {
   useEffect(() => {
     alEntrar();
   }, []);
-  const [ocupado, setOcupado] = useState<'exportar' | 'importar' | null>(null);
+  const [ocupado, setOcupado] = useState<'exportar' | 'importar' | 'borrar' | null>(null);
   const notif = ajustes.notificaciones;
 
   const intervalos: readonly OpcionSegmento<string>[] = OPCIONES_INTERVALO_HORAS.map((horas) => ({
@@ -155,6 +154,27 @@ export default function Ajustes() {
       setOcupado(null);
     }
   };
+
+  const alConfirmarBorrar = async () => {
+    setOcupado('borrar');
+    try {
+      await limpiarDatos();
+    } catch (error) {
+      alerta(i18n.t('ajustes.error_borrar'), mensajeDeError(error, i18n));
+    } finally {
+      setOcupado(null);
+    }
+  };
+
+  const alBorrar = () =>
+    alerta(
+      i18n.t('ajustes.borrar_titulo'),
+      i18n.plural('ajustes.borrar_mensaje', movimientos.length),
+      [
+        { text: i18n.t('comun.cancelar'), style: 'cancel' },
+        { text: i18n.t('comun.eliminar'), style: 'destructive', onPress: () => void alConfirmarBorrar() },
+      ],
+    );
 
   const valorMoneda =
     ajustes.moneda === MONEDA_AUTOMATICA
@@ -369,14 +389,22 @@ export default function Ajustes() {
           cargando={ocupado === 'importar'}
           deshabilitada={ocupado !== null && ocupado !== 'importar'}
         />
+        <Separador />
+        <FilaAjuste
+          icono="trash-outline"
+          titulo={i18n.t('ajustes.borrar')}
+          descripcion={i18n.t('ajustes.borrar_desc')}
+          peligro
+          onPress={alBorrar}
+          cargando={ocupado === 'borrar'}
+          deshabilitada={ocupado !== null && ocupado !== 'borrar'}
+        />
         <BloqueDrive />
       </Seccion>
 
       <Seccion indice={4} titulo={i18n.t('ajustes.acerca')}>
         <View style={estilos.bloque}>
-          <Texto variante="cuerpo" negrita>
-            {NOMBRE_APP} {Constants.expoConfig?.version ? `v${Constants.expoConfig.version}` : ''}
-          </Texto>
+          <Texto variante="cuerpo" negrita>{NOMBRE_APP}</Texto>
           <Texto variante="pequeno">{i18n.t('ajustes.acerca_desc')}</Texto>
           <Texto variante="pequeno">{i18n.t('ajustes.acerca_licencias')}</Texto>
         </View>

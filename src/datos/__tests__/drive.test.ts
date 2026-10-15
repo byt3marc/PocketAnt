@@ -330,6 +330,21 @@ describe('sincronizar', () => {
     expect((await tablet.listarActivos()).map((m) => m.id)).toEqual(['b']);
   });
 
+  it('borrar todos los registros en un dispositivo se propaga al otro', async () => {
+    const nube = crearNube();
+    const celular = crearRepositorioMemoria([mov('a'), mov('b')]);
+    const tablet = crearRepositorioMemoria();
+    await sincronizar(celular, nube.proveedor);
+    await sincronizar(tablet, nube.proveedor);
+
+    await celular.limpiarTodo(new Date('2026-10-14T00:00:00.000Z'));
+    await sincronizar(celular, nube.proveedor);
+    const resultado = await sincronizar(tablet, nube.proveedor);
+
+    expect(resultado.eliminados).toBe(2);
+    expect(await tablet.listarActivos()).toHaveLength(0);
+  });
+
   it('es idempotente: sincronizar dos veces seguidas no vuelve a subir ni cambiar nada', async () => {
     const nube = crearNube();
     const repo = crearRepositorioMemoria([mov('a')]);

@@ -15,6 +15,8 @@ export interface RepositorioMovimientos {
   guardar(movimiento: Movimiento): Promise<void>;
   /** Borrado lógico: conserva el registro para que el borrado se propague. */
   eliminar(id: string, ahora: Date): Promise<void>;
+  /** Borrado lógico de todos los registros en una sola operación (para vaciar la app). */
+  limpiarTodo(ahora: Date): Promise<void>;
   /** Combina movimientos externos con los locales (gana el más reciente por `id`). */
   fusionar(entrantes: readonly Movimiento[]): Promise<ResumenFusion>;
 }

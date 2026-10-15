@@ -10,6 +10,7 @@ import type { EvaluacionIA } from '@/ia/tipos';
 
 const mockPush = jest.fn();
 const mockPedirPermisoSiHaceFalta = jest.fn();
+const mockLimpiarDatos = jest.fn();
 
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('expo-constants', () => ({ expoConfig: { version: '1.0.0' } }));
@@ -19,7 +20,12 @@ jest.mock('react-native-safe-area-context', () => {
   return { useSafeAreaInsets: () => margenes, SafeAreaInsetsContext: createContext(margenes) };
 });
 jest.mock('@/datos/DatosProvider', () => ({
-  useDatos: () => ({ exportar: jest.fn(), importar: jest.fn() }),
+  useDatos: () => ({
+    exportar: jest.fn(),
+    importar: jest.fn(),
+    movimientos: [],
+    limpiarDatos: mockLimpiarDatos,
+  }),
 }));
 jest.mock('@/notificaciones/NotificacionesProvider', () => ({
   useNotificaciones: () => ({
@@ -187,5 +193,33 @@ describe('Ajustes: bloques que aparecen y desaparecen', () => {
 
     await fireEvent(screen.getByRole('switch', { name: 'Aviso de cobros recurrentes' }), 'valueChange', false);
     expect(screen.queryByText('Avisar')).toBeNull();
+  });
+});
+
+describe('Ajustes: borrar datos', () => {
+  it('pedir borrar abre la confirmación, y cancelar no borra nada', async () => {
+    await montar(compatible());
+    mockLimpiarDatos.mockClear();
+
+    expect(screen.queryByText('¿Borrar todos los datos?')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: /Borrar datos/ }));
+    expect(screen.getByText('¿Borrar todos los datos?')).toBeTruthy();
+    // Aún no se borró nada: hay que confirmar.
+    expect(mockLimpiarDatos).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+    await avanzar(50);
+    expect(screen.queryByText('¿Borrar todos los datos?')).toBeNull();
+    expect(mockLimpiarDatos).not.toHaveBeenCalled();
+  });
+
+  it('al confirmar la confirmación, borra todos los datos', async () => {
+    await montar(compatible());
+    mockLimpiarDatos.mockClear();
+
+    await fireEvent.press(screen.getByRole('button', { name: /Borrar datos/ }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Eliminar' }));
+    await avanzar(50);
+    expect(mockLimpiarDatos).toHaveBeenCalledTimes(1);
   });
 });

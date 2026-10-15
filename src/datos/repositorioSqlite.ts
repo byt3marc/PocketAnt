@@ -86,6 +86,13 @@ export function crearRepositorioSqlite(db: SQLiteDatabase): RepositorioMovimient
       );
     },
 
+    async limpiarTodo(ahora) {
+      await db.runAsync(
+        'UPDATE movimientos SET eliminado = 1, actualizado_en = ? WHERE eliminado = 0',
+        ahora.toISOString(),
+      );
+    },
+
     async fusionar(entrantes) {
       let resumen = { nuevos: 0, actualizados: 0, eliminados: 0, sinCambios: 0 };
       // No es exclusiva a propósito: con `withExclusiveTransactionAsync`, un guardado del usuario que coincida con una
