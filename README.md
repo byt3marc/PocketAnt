@@ -1,4 +1,8 @@
-# <img src="assets/images/icon.png" alt="Pocketant logo" width="56" align="center" /> Pocketant
+<p align="center">
+  <img src="assets/images/android-icon-foreground.png" alt="Pocketant logo" width="128" />
+</p>
+
+<h1 align="center">Pocketant</h1>
 
 A mobile app (Android and iPhone) to track your **small daily expenses** (*gastos hormiga*), keep an eye on your balance, and visualize income and spending in charts. Everything is stored on your device.
 
