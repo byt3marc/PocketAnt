@@ -42,6 +42,11 @@ credentials.json
 .claude/skills/
 .claude/settings.local.json
 
+# notitas y configuración local (no al repositorio)
+Todo.md
+Info.md
+AGENTS.md
+
 # typescript
 *.tsbuildinfo
 

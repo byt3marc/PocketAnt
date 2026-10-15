@@ -2,7 +2,7 @@
 
 App móvil (Android e iPhone) para registrar tus **gastos hormiga**, llevar tu saldo y visualizar tus ingresos y gastos en gráficas. Todo se guarda en tu dispositivo.
 
-> 🚧 Estado: **preparando la publicación en Google Play** (2026-10-15). La app está completa (Home, gráficas, Análisis con IA local, notificaciones, idiomas, fuentes, animaciones) y se revisó para Play: política de privacidad, reportes de la IA, permisos, respaldo y ficha de la tienda en [`tienda/`](tienda/ficha.md). Verificado con tipos, lint y 479 pruebas. Falta probar el último APK en un teléfono, poner el correo de contacto y el formulario de reportes, y rellenar Play Console (ver [Todo.md](Todo.md)).
+> 🚧 Estado: **preparando la publicación en Google Play** (2026-10-15). La app está completa (Home, gráficas, Análisis con IA local, notificaciones, idiomas, fuentes, animaciones) y se revisó para Play: política de privacidad, reportes de la IA, permisos, respaldo y ficha de la tienda en [`tienda/`](tienda/ficha.md). Verificado con tipos, lint y 483 pruebas. Falta probar el último APK en un teléfono, poner el correo de contacto y el formulario de reportes, y rellenar Play Console.
 
 ---
 
@@ -26,7 +26,7 @@ Al abrir la app tu saldo es **0**. Con dos botones puedes **agregar** o **quitar
 - 💱 **Moneda** automática según tu región (por defecto `$`) o elegida a mano.
 - 🔒 Almacenamiento **local** en el dispositivo (sin cuentas, anuncios, analítica ni servidores propios). **Política de privacidad** dentro de la app (Ajustes → Acerca de).
 - 📤 Exportar/importar datos en JSON.
-- ☁️ **Google Drive** (opcional): respaldo y sincronización en una carpeta privada de tu Drive, con la API actual de Google. Queda oculto hasta registrar la app en Google Cloud y poner `driveActivado: true` (ver [Info.md](Info.md#-google-drive-puesta-en-marcha)).
+- ☁️ **Google Drive** (opcional): respaldo y sincronización en una carpeta privada de tu Drive, con la API actual de Google. Queda oculto hasta registrar la app en Google Cloud y poner `driveActivado: true`.
 
 ## 🛠️ Stack
 
@@ -97,13 +97,7 @@ AppHormiga/
 ├── assets/images/      # Icono, icono adaptativo (color y monocromo), pantalla de carga, favicon y notificaciones
 ├── app.json            # Configuración de Expo
 ├── eas.json            # Perfiles de compilación (APK de prueba y AAB de producción)
-├── Info.md             # Especificaciones, decisiones, modelo de datos y notas de diseño
-├── Todo.md             # Lista de tareas y roadmap
 └── README.md           # Este archivo
 ```
 
-## 📚 Documentación Adicional
 
-- [Info.md](Info.md): Especificación detallada, decisiones del proyecto y modelo de datos.
-- [Todo.md](Todo.md): Tareas pendientes y avances.
-- [AGENTS.md](AGENTS.md): Guía para asistentes de código (viene con la plantilla de Expo).
