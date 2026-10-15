@@ -7,9 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pocketant",
     "userInterfaceStyle": "automatic",
-    "ios": {
-      "icon": "./assets/images/icon.png"
-    },
     "android": {
       "package": "com.pocketant.app",
       "adaptiveIcon": {
