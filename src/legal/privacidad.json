@@ -56,6 +56,7 @@
         "titulo": "Borrar tus datos",
         "parrafos": [
           "Puedes borrar cualquier movimiento desde la app. Al borrarlo, la app lo conserva marcado como borrado para que no reaparezca al importar o sincronizar.",
+          "También puedes borrarlo todo desde la propia app: Ajustes → Borrar datos. Si tienes conectada una copia de Google Drive, el borrado llega también a esa copia.",
           "Para borrarlo todo: Ajustes del teléfono → Apps → Pocketant → Almacenamiento → Borrar datos, o desinstala la app. Si guardaste una copia en Google Drive, puedes borrarla desde Drive (Configuración → Administrar apps → Pocketant → Borrar datos ocultos de la app)."
         ]
       },
@@ -129,6 +130,7 @@
         "titulo": "Deleting your data",
         "parrafos": [
           "You can delete any entry from the app. When you do, the app keeps it marked as deleted so it doesn't come back when importing or syncing.",
+          "You can also delete everything from the app itself: Settings → Clear data. If you've connected a Google Drive copy, the deletion reaches that copy too.",
           "To delete everything: phone Settings → Apps → Pocketant → Storage → Clear data, or uninstall the app. If you saved a copy to Google Drive, you can delete it from Drive (Settings → Manage apps → Pocketant → Delete hidden app data)."
         ]
       },

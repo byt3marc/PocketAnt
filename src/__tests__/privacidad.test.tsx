@@ -4,6 +4,7 @@ import Privacidad from '@/app/privacidad';
 import { AjustesProvider, useAjustes } from '@/ajustes/AjustesProvider';
 import { Boton } from '@/componentes/Boton';
 import { politicaDePrivacidad } from '@/legal/privacidad';
+import datosPolitica from '@/legal/privacidad.json';
 
 jest.mock('@/ajustes/almacen', () => ({
   leerAjustes: () => ({ tema: 'claro', moneda: 'USD', tipoGrafica: 'linea', idioma: 'es' }),
@@ -53,7 +54,12 @@ describe('política de privacidad', () => {
     expect(screen.getByText('What data it keeps and where')).toBeTruthy();
   });
 
-  it('sin correo de contacto puesto, no muestra una línea de contacto vacía', () => {
-    expect(politicaDePrivacidad('es').contacto).toBeNull();
+  it('muestra la línea de contacto con el correo del JSON, sin espacios en blanco', () => {
+    const es = politicaDePrivacidad('es');
+    if (datosPolitica.contacto.trim()) {
+      expect(es.contacto).toBe(`Contacto: ${datosPolitica.contacto}`);
+    } else {
+      expect(es.contacto).toBeNull();
+    }
   });
 });
