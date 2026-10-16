@@ -72,7 +72,13 @@
         "expo-build-properties",
         {
           "android": {
-            "minSdkVersion": 26
+            "minSdkVersion": 26,
+            "buildArchs": [
+              "arm64-v8a"
+            ],
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.google.ai.edge.litertlm.** { *; }\n-dontwarn com.google.ai.edge.litertlm.**"
           }
         }
       ],
