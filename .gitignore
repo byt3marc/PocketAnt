@@ -46,6 +46,8 @@ credentials.json
 Todo.md
 Info.md
 AGENTS.md
+PLAN.md
+.agents/
 
 # typescript
 *.tsbuildinfo
