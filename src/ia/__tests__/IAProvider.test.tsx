@@ -185,6 +185,26 @@ describe('IAProvider: descarga', () => {
     expect(servicio.descargado).toBe(false);
   });
 
+  it('pulsar «Continuar» dos veces seguidas sin mover el reloj arranca una sola descarga', async () => {
+    const servicio = await montar({ evaluacion: compatible({ parcialBytes: 1_035_259_085 }) });
+    let descargas = 0;
+    const descargarReal = servicio.descargar.bind(servicio);
+    servicio.descargar = (onProgreso, onVerificando) => {
+      descargas += 1;
+      return descargarReal(onProgreso, onVerificando);
+    };
+    await pulsar('refrescar');
+    await avanzar(50);
+    expect(valor('fase')).toBe('pausada');
+
+    // Dos toques seguidos: el segundo llega antes de que la primera llamada termine de consultar al teléfono.
+    await pulsar('descargar');
+    await pulsar('descargar');
+    await avanzar(15);
+    expect(descargas).toBe(1);
+    expect(valor('fase')).toBe('descargando');
+  });
+
   it('pausar detiene la descarga conservando el avance, y continuar sigue desde ahí', async () => {
     const servicio = await montar();
     await pulsar('descargar');

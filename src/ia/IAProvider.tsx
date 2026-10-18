@@ -163,6 +163,8 @@ export function IAProvider({ servicio: servicioPropio, segundoPlano = segundoPla
 
   const descargar = async () => {
     if (ocupado.current) return;
+    // Se marca aquí, antes de consultar al teléfono: con la consulta en el aire, dos pulsaciones seguidas no pueden arrancar dos descargas.
+    ocupado.current = true;
     // El único punto de entrada: cubre «Descargar», «Continuar» y cualquier llamada futura.
     try {
       const evaluacion = await servicio.evaluar();
@@ -171,13 +173,14 @@ export function IAProvider({ servicio: servicioPropio, segundoPlano = segundoPla
         const falta = servicio.modelo.tamanoBytes - evaluacion.parcialBytes;
         if (evaluacion.discoLibreBytes < falta + MARGEN_DISCO_BYTES) {
           setEstado((actual) => ({ ...actual, error: 'ia.error_disco' }));
+          // No se descarga nada: se libera para poder reintentar cuando haya espacio.
+          ocupado.current = false;
           return;
         }
       }
     } catch {
       // Si no se puede leer el disco (o consultar al teléfono), se sigue igual: la descarga lo dirá si falta espacio.
     }
-    ocupado.current = true;
     version.current += 1;
     // Si queda algo descargado, el progreso arranca desde ahí (la descarga continúa, no empieza de cero).
     setEstado((actual) => ({ ...actual, fase: 'descargando', error: null }));
