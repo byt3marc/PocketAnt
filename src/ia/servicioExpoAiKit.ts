@@ -72,11 +72,23 @@ export function crearServicioExpoAiKit(): ServicioIA {
       if (ramBytes !== null && ramBytes < RAM_MINIMA_BYTES) return { compatible: false, motivo: 'ram', ramBytes };
 
       try {
-        const catalogo = await (await libreria()).getDownloadableModels();
+        const kit = await libreria();
+        const catalogo = await kit.getDownloadableModels();
         const modelo = catalogo.find((m) => m.id === MODELO.id);
         if (!modelo) return { compatible: false, motivo: 'generico', ramBytes };
         if (!modelo.meetsRequirements) return { compatible: false, motivo: 'ram', ramBytes };
-        const descargado = modelo.status === 'downloaded' || modelo.status === 'loading' || modelo.status === 'ready';
+        let descargado = modelo.status === 'downloaded' || modelo.status === 'loading' || modelo.status === 'ready';
+        // Un archivo `downloaded` que no tiene el tamaño debido está dañado o quedó a medias: se borra y se ofrece
+        // descargar otra vez. Cargando o en memoria no se toca (el motor lo está usando); al volver a `downloaded`
+        // se vuelve a verificar.
+        if (descargado && modelo.status === 'downloaded' && archivos.tamanoDefinitivo() !== MODELO.tamanoBytes) {
+          descargado = false;
+          try {
+            await kit.deleteModel(MODELO.id);
+          } catch {
+            // Si no se deja borrar, se sigue igual: una descarga nueva sustituirá lo que haya en su sitio.
+          }
+        }
         return {
           compatible: true,
           descargado,

@@ -19,6 +19,8 @@ export interface OpcionesServicioFalso {
   pasoMs?: number;
   /** Texto que «genera» la IA. */
   informe?: string;
+  /** La generación deja de producir texto sin terminar y no concluye hasta que alguien llama a `detener()` (motor atascado). */
+  generacionAtascada?: boolean;
   /**
    * Códigos de error de la librería. Cada uno salta **una sola vez** (el siguiente intento sale bien): el de `descargar`
    * a mitad de la descarga (un corte de red: lo descargado se conserva y se continúa), y los de `cargar` y `generar`
@@ -143,6 +145,11 @@ export function crearServicioFalso(
 
     generar(_mensajes: MensajeIA[], onTexto): Generacion {
       let detenida = false;
+      // Un motor atascado deja de producir texto sin terminar: esta promesa solo se resuelve con `detener()`.
+      let soltarAtasco: (() => void) | undefined;
+      const atasco = new Promise<void>((resolver) => {
+        soltarAtasco = resolver;
+      });
       const texto = opciones.informe ?? INFORME_FALSO;
       const promesa = (async () => {
         await esperar(pasoMs);
@@ -158,6 +165,10 @@ export function crearServicioFalso(
           acumulado += i === 0 ? palabras[i] : ` ${palabras[i]}`;
           onTexto(acumulado);
           await esperar(pasoMs);
+          // Un motor atascado deja de producir texto sin terminar: solo `detener()` lo suelta.
+          if (opciones.generacionAtascada) {
+            await atasco;
+          }
         }
         return acumulado;
       })();
@@ -165,6 +176,7 @@ export function crearServicioFalso(
         promesa,
         detener: () => {
           detenida = true;
+          soltarAtasco?.();
         },
       };
     },

@@ -5,8 +5,11 @@
 export const RAM_MINIMA_BYTES = 3_500_000_000;
 /** Cómo se le dice al usuario ese mínimo («al menos 4 GB»). */
 export const RAM_MINIMA_ETIQUETA = '4 GB';
-/** Entre el mínimo y esto se ofrece, pero avisando de que va justo (un «6 GB» marca ~5.5e9). */
+/** Entre el mínimo y esto se ofrece, pero avisando de que va justa (un «6 GB» marca ~5.5e9). */
 export const RAM_HOLGADA_BYTES = 5_400_000_000;
+
+/** Espacio libre exigido **por encima** de lo que falta por bajar: margen fijo, no un porcentaje del total. */
+export const MARGEN_DISCO_BYTES = 500_000_000;
 
 export interface FormularioReportes {
   /** La dirección para enviar respuestas: `https://docs.google.com/forms/d/e/<ID>/formResponse`. */

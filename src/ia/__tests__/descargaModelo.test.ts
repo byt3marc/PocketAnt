@@ -43,6 +43,7 @@ function crear(inicial: Partial<Pick<Disco, 'parcial' | 'md5'>> = {}, modo: Modo
 
   const archivos: ArchivosModelo = {
     tamanoParcial: () => disco.parcial,
+    tamanoDefinitivo: () => (disco.promovido ? ESPEC.tamanoBytes : 0),
     borrarParcial: () => {
       disco.parcial = 0;
       disco.borrados += 1;

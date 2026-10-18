@@ -9,7 +9,7 @@ import { useAjustes } from '@/ajustes/AjustesProvider';
 import type { HechosAnalisis } from '@/dominio/analisis';
 import { formatearRam, formatearTamano } from '@/dominio/formato';
 import { construirPrompt } from '@/dominio/promptIA';
-import { RAM_MINIMA_ETIQUETA } from '@/ia/config';
+import { MARGEN_DISCO_BYTES, RAM_MINIMA_ETIQUETA } from '@/ia/config';
 import { useIA } from '@/ia/IAProvider';
 import { enviarReporte, formularioConfigurado } from '@/ia/reportes';
 import { radios, type Paleta } from '@/tema/paleta';
@@ -21,9 +21,6 @@ import { Icono } from './Icono';
 import { Revelar } from './Revelar';
 import { Tarjeta } from './Tarjeta';
 import { Texto } from './Texto';
-
-/** Margen sobre el tamaño del modelo que debe quedar libre en el almacenamiento antes de descargar. */
-const MARGEN_DISCO = 1.15;
 
 /** Qué pasó con la última respuesta reportada (`local`: no hay formulario configurado, solo se ocultó). */
 type EnvioReporte = 'enviando' | 'enviado' | 'fallo' | 'local';
@@ -106,7 +103,8 @@ export function BloqueIA({ hechos }: Props) {
 
   const pedirDescarga = () => {
     const libre = evaluacion?.compatible ? evaluacion.discoLibreBytes : null;
-    if (libre !== null && libre < modelo.tamanoBytes * MARGEN_DISCO) {
+    // En esta fase no hay descarga a medias: falta todo el modelo. La regla final la aplica el proveedor.
+    if (libre !== null && libre < modelo.tamanoBytes + MARGEN_DISCO_BYTES) {
       alerta(
         i18n.t('ia.titulo'),
         i18n.t('ia.sin_espacio', { tamano, libre: formatearTamano(libre) }),

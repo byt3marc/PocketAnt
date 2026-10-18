@@ -122,6 +122,13 @@ describe('crearArchivosModelo', () => {
     expect(archivos.tamanoParcial()).toBe(640);
   });
 
+  it('el tamaño del definitivo es 0 si no existe y los bytes que tiene si existe', () => {
+    const archivos = crearArchivosModelo('gemma-e2b');
+    expect(archivos.tamanoDefinitivo()).toBe(0);
+    poner(DEFINITIVO, { exists: true, size: 640 });
+    expect(archivos.tamanoDefinitivo()).toBe(640);
+  });
+
   it('borrar el parcial solo borra si existe', () => {
     const archivos = crearArchivosModelo('gemma-e2b');
     archivos.borrarParcial();

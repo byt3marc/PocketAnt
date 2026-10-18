@@ -14,6 +14,7 @@ import { formatearTamano } from '@/dominio/formato';
 import { MAX_CARACTERES_RESPUESTA, type MensajeIA } from '@/dominio/promptIA';
 import type { ClaveTexto } from '@/i18n/es';
 
+import { MARGEN_DISCO_BYTES } from './config';
 import { traducirErrorIA } from './errores';
 import { crearServicioExpoAiKit } from './servicioExpoAiKit';
 import { segundoPlanoNativo, type SegundoPlano } from './segundoPlano';
@@ -96,6 +97,13 @@ interface Props {
  */
 const INTERVALO_PROGRESO_MS = 1000;
 
+/**
+ * Tiempo máximo de una generación de informe: unos 120 s, porque la CPU da ~15–50 palabras/s y un informe tiene menos
+ * de 150 palabras. Es lo único que corta al motor si se atasca sin producir texto (el límite de caracteres solo actúa
+ * si el texto crece). Al vencer se detiene como si el usuario hubiera pulsado «Detener».
+ */
+export const TIEMPO_MAXIMO_GENERACION_MS = 120_000;
+
 function faseDeEvaluacion(evaluacion: EvaluacionIA): FaseIA {
   if (!evaluacion.compatible) return 'no-compatible';
   if (evaluacion.cargado) return 'listo';
@@ -155,6 +163,20 @@ export function IAProvider({ servicio: servicioPropio, segundoPlano = segundoPla
 
   const descargar = async () => {
     if (ocupado.current) return;
+    // El único punto de entrada: cubre «Descargar», «Continuar» y cualquier llamada futura.
+    try {
+      const evaluacion = await servicio.evaluar();
+      if (evaluacion.compatible && evaluacion.discoLibreBytes !== null) {
+        // Basta lo que falta por bajar más un margen fijo, no el modelo entero otra vez.
+        const falta = servicio.modelo.tamanoBytes - evaluacion.parcialBytes;
+        if (evaluacion.discoLibreBytes < falta + MARGEN_DISCO_BYTES) {
+          setEstado((actual) => ({ ...actual, error: 'ia.error_disco' }));
+          return;
+        }
+      }
+    } catch {
+      // Si no se puede leer el disco (o consultar al teléfono), se sigue igual: la descarga lo dirá si falta espacio.
+    }
     ocupado.current = true;
     version.current += 1;
     // Si queda algo descargado, el progreso arranca desde ahí (la descarga continúa, no empieza de cero).
@@ -293,6 +315,7 @@ export function IAProvider({ servicio: servicioPropio, segundoPlano = segundoPla
     if (ocupado.current) return;
     ocupado.current = true;
     setInforme({ estado: 'generando', texto: '', error: null, reportado: false });
+    let tiempoMaximo: ReturnType<typeof setTimeout> | undefined;
     try {
       // La primera vez el modelo se carga en memoria (unos segundos).
       if (estado.fase !== 'listo') {
@@ -320,6 +343,8 @@ export function IAProvider({ servicio: servicioPropio, segundoPlano = segundoPla
       });
       cortar = flujo.detener;
       generacion.current = flujo;
+      // Si el motor se atasca sin producir texto, nada más lo corta: a los 120 s se detiene como si fuera «Detener».
+      tiempoMaximo = setTimeout(() => flujo.detener(), TIEMPO_MAXIMO_GENERACION_MS);
       try {
         const final = await flujo.promesa;
         const texto = (final || acumulado).slice(0, MAX_CARACTERES_RESPUESTA).trim();
@@ -336,6 +361,7 @@ export function IAProvider({ servicio: servicioPropio, segundoPlano = segundoPla
         }
       }
     } finally {
+      if (tiempoMaximo !== undefined) clearTimeout(tiempoMaximo);
       generacion.current = null;
       ocupado.current = false;
       if (liberarPendiente.current) {

@@ -26,6 +26,11 @@ export function crearArchivosModelo(
       return archivo.exists ? archivo.size : 0;
     },
 
+    tamanoDefinitivo() {
+      const archivo = definitivo();
+      return archivo.exists ? archivo.size : 0;
+    },
+
     borrarParcial() {
       const archivo = parcial();
       if (archivo.exists) archivo.delete();

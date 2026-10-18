@@ -161,6 +161,8 @@ describe('BloqueIA', () => {
     await pulsarDialogo('Descargar');
     expect(screen.queryByText('¿Descargar el modelo?')).toBeNull();
 
+    // Al empezar se consulta al teléfono cuánto falta por bajar: la barra aparece un tick después.
+    await avanzar(15);
     expect(screen.getByRole('progressbar')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Pausar' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeTruthy();
@@ -168,7 +170,8 @@ describe('BloqueIA', () => {
     expect(screen.getByRole('progressbar').props.accessibilityValue.now).toBeGreaterThan(0);
 
     // Al llegar al 100 % se comprueba el archivo antes de ofrecer el informe.
-    await avanzar(70);
+    // La verificación dura un paso del reloj falso: hay que cogerla antes de que termine la descarga.
+    await avanzar(65);
     expect(screen.getByText('Verificando que el archivo esté completo… (unos segundos)')).toBeTruthy();
     await avanzar(300);
     expect(screen.getByRole('button', { name: 'Generar informe' })).toBeTruthy();
@@ -219,6 +222,8 @@ describe('BloqueIA', () => {
     expect(screen.queryByRole('button', { name: 'Descargar modelo' })).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Continuar' }));
+    // Al continuar se vuelve a consultar el espacio libre: la barra aparece un tick después.
+    await avanzar(15);
     expect(screen.getByText(/Descargando… 40%/)).toBeTruthy();
     await avanzar(400);
     expect(screen.getByRole('button', { name: 'Generar informe' })).toBeTruthy();

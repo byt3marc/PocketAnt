@@ -5,7 +5,7 @@ import { AjustesProvider } from '@/ajustes/AjustesProvider';
 import { AvisoProvider } from '@/componentes/AvisoProvider';
 import { MAX_CARACTERES_RESPUESTA } from '@/dominio/promptIA';
 
-import { IAProvider, useIA } from '../IAProvider';
+import { IAProvider, TIEMPO_MAXIMO_GENERACION_MS, useIA } from '../IAProvider';
 import { crearSegundoPlanoFalso } from '@/pruebas/segundoPlanoFalso';
 import { crearServicioFalso, type OpcionesServicioFalso } from '@/pruebas/servicioIAFalso';
 import type { EvaluacionIA } from '../tipos';
@@ -107,6 +107,8 @@ describe('IAProvider: descarga', () => {
   it('muestra el progreso y termina en «descargado»', async () => {
     await montar();
     await pulsar('descargar');
+    // Al empezar se consulta al teléfono el espacio libre: la fase cambia un tick después.
+    await avanzar(15);
     expect(valor('fase')).toBe('descargando');
     await avanzar(25);
     expect(Number(valor('progreso'))).toBeGreaterThan(0);
@@ -119,7 +121,8 @@ describe('IAProvider: descarga', () => {
   it('verifica el archivo antes de darlo por descargado', async () => {
     await montar();
     await pulsar('descargar');
-    await avanzar(105);
+    // La consulta previa al teléfono retrasa un tick el arranque de la descarga.
+    await avanzar(115);
     expect(valor('fase')).toBe('verificando');
     expect(valor('progreso')).toBe(100);
     await avanzar(50);
@@ -148,6 +151,7 @@ describe('IAProvider: descarga', () => {
     expect(servicio.parcialBytes).toBeGreaterThan(0);
 
     await pulsar('descargar'); // continuar
+    await avanzar(15);
     expect(valor('fase')).toBe('descargando');
     expect(valor('error')).toBe('');
     await avanzar(300);
@@ -161,7 +165,24 @@ describe('IAProvider: descarga', () => {
     expect(valor('error')).toBe('ia.error_disco');
     expect(valor('fase')).toBe('pausada');
     await pulsar('descargar');
+    await avanzar(15);
     expect(valor('error')).toBe('');
+  });
+
+  it('con poco disco, «Continuar» una descarga pausada no baja nada y muestra el error', async () => {
+    const servicio = await montar({
+      evaluacion: compatible({ parcialBytes: 1_035_259_085, discoLibreBytes: 1_500_000_000 }),
+    });
+    await pulsar('refrescar');
+    await avanzar(50);
+    expect(valor('fase')).toBe('pausada');
+
+    // Falta ~1.5 GB y solo hay 1.5 GB libres: ni con el margen alcanza.
+    await pulsar('descargar'); // continuar
+    await avanzar(50);
+    expect(valor('fase')).toBe('pausada');
+    expect(valor('error')).toBe('ia.error_disco');
+    expect(servicio.descargado).toBe(false);
   });
 
   it('pausar detiene la descarga conservando el avance, y continuar sigue desde ahí', async () => {
@@ -178,6 +199,7 @@ describe('IAProvider: descarga', () => {
     expect(servicio.parcialBytes).toBeGreaterThan(0);
 
     await pulsar('descargar');
+    await avanzar(15);
     expect(valor('fase')).toBe('descargando');
     expect(Number(valor('progreso'))).toBeGreaterThanOrEqual(avance);
     await avanzar(400);
@@ -251,6 +273,29 @@ describe('IAProvider: informe', () => {
     await avanzar(10_000);
     expect(valor('informe')).toBe('listo');
     expect(String(valor('texto')).length).toBeLessThanOrEqual(MAX_CARACTERES_RESPUESTA);
+  });
+
+  it('una generación atascada se detiene sola al llegar al tiempo máximo', async () => {
+    await montar({
+      evaluacion: compatible({ descargado: true, cargado: true }),
+      informe: 'uno dos tres cuatro cinco seis siete ocho nueve diez',
+      generacionAtascada: true,
+    });
+    await pulsar('refrescar');
+    await avanzar(50);
+    await pulsar('generar');
+    // Emite una palabra y se atasca: sin el temporizador nunca terminaría.
+    expect(valor('informe')).toBe('generando');
+    await avanzar(TIEMPO_MAXIMO_GENERACION_MS - 10);
+    expect(valor('informe')).toBe('generando');
+    await avanzar(10);
+    // Se detuvo como si el usuario hubiera pulsado «Detener»: se queda con lo que ya había salido y,
+    // como no fue un fallo, no reinicia el motor.
+    expect(valor('informe')).toBe('listo');
+    const texto = String(valor('texto'));
+    expect(texto.length).toBeGreaterThan(0);
+    expect(texto).not.toBe('uno dos tres cuatro cinco seis siete ocho nueve diez');
+    expect(valor('fase')).toBe('listo');
   });
 
   it('si falla la carga del modelo, avisa y sigue en «descargado»', async () => {
@@ -379,6 +424,7 @@ describe('IAProvider: descarga en segundo plano', () => {
       throw new Error('ForegroundServiceStartNotAllowedException');
     };
     await pulsar('descargar');
+    await avanzar(15);
     expect(valor('fase')).toBe('descargando');
     await avanzar(300);
     expect(valor('fase')).toBe('descargado');
@@ -386,12 +432,15 @@ describe('IAProvider: descarga en segundo plano', () => {
     await pulsar('eliminar');
     await avanzar(50);
     await pulsar('descargar');
+    await avanzar(15);
     expect(valor('fase')).toBe('descargando');
   });
 
   it('enciende el servicio al empezar, con la notificación ya traducida, y lo apaga al terminar', async () => {
     await montar();
     await pulsar('descargar');
+    // El servicio se enciende tras la consulta previa al teléfono.
+    await avanzar(15);
     expect(segundo.llamadas[0]).toMatchObject({
       tipo: 'iniciar',
       textos: {

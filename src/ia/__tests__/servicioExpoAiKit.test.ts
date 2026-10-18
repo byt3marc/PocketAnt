@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import { crearServicioExpoAiKit } from '../servicioExpoAiKit';
 import type { ArchivosModelo } from '../descargaModelo';
+import { MODELO } from '../config';
 
 // `expo-ai-kit` y el disco son nativos: se simulan para probar cómo los usa el servicio.
 const mockKit = {
@@ -27,6 +28,7 @@ jest.mock('expo-file-system', () => ({ Paths: { availableDiskSpace: 50_000_000_0
 
 const mockArchivos: ArchivosModelo = {
   tamanoParcial: jest.fn(() => 0),
+  tamanoDefinitivo: jest.fn(() => 0),
   borrarParcial: jest.fn(),
   md5Parcial: jest.fn(async () => '1b8446203a216cfd31f6a2a22f75e5e5'),
   promoverParcial: jest.fn(),
@@ -43,6 +45,7 @@ beforeEach(() => {
   jest.replaceProperty(Platform, 'OS', 'android');
   mockKit.getDownloadableModels.mockResolvedValue([modelo('not-downloaded')]);
   (mockArchivos.tamanoParcial as jest.Mock).mockReturnValue(0);
+  (mockArchivos.tamanoDefinitivo as jest.Mock).mockReturnValue(0);
 });
 
 afterEach(() => jest.restoreAllMocks());
@@ -138,12 +141,37 @@ describe('crearServicioExpoAiKit: compatibilidad', () => {
 
   it('lee el estado del modelo: descargado, cargado o con una descarga a medias', async () => {
     mockKit.getDownloadableModels.mockResolvedValue([modelo('downloaded')]);
+    (mockArchivos.tamanoDefinitivo as jest.Mock).mockReturnValue(MODELO.tamanoBytes);
     expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ descargado: true, cargado: false, parcialBytes: 0 });
     mockKit.getDownloadableModels.mockResolvedValue([modelo('ready')]);
     expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ descargado: true, cargado: true });
     mockKit.getDownloadableModels.mockResolvedValue([modelo('not-downloaded')]);
     (mockArchivos.tamanoParcial as jest.Mock).mockReturnValue(1_035_259_085);
     expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ descargado: false, parcialBytes: 1_035_259_085 });
+  });
+
+  it('un archivo definitivo que no tiene el tamaño debido se da por dañado: se borra y se ofrece descargar', async () => {
+    mockKit.getDownloadableModels.mockResolvedValue([modelo('downloaded')]);
+    (mockArchivos.tamanoDefinitivo as jest.Mock).mockReturnValue(123_456);
+    expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ descargado: false, cargado: false, parcialBytes: 0 });
+    expect(mockKit.deleteModel).toHaveBeenCalledWith('gemma-e2b');
+  });
+
+  it('con el modelo en memoria o cargando no se toca el archivo aunque no coincida el tamaño', async () => {
+    (mockArchivos.tamanoDefinitivo as jest.Mock).mockReturnValue(123_456);
+    mockKit.getDownloadableModels.mockResolvedValue([modelo('ready')]);
+    expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ descargado: true, cargado: true });
+    mockKit.getDownloadableModels.mockResolvedValue([modelo('loading')]);
+    expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ descargado: true, cargado: false });
+    expect(mockArchivos.tamanoDefinitivo).not.toHaveBeenCalled();
+    expect(mockKit.deleteModel).not.toHaveBeenCalled();
+  });
+
+  it('si el archivo dañado no se deja borrar, se ofrece la descarga de nuevo igual', async () => {
+    mockKit.getDownloadableModels.mockResolvedValue([modelo('downloaded')]);
+    (mockArchivos.tamanoDefinitivo as jest.Mock).mockReturnValue(123_456);
+    mockKit.deleteModel.mockRejectedValue(new Error('E/S'));
+    expect(await crearServicioExpoAiKit().evaluar()).toMatchObject({ compatible: true, descargado: false });
   });
 
   it('si la librería dice que el teléfono no cumple los requisitos, no es compatible', async () => {

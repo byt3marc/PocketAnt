@@ -33,6 +33,8 @@ export interface TareaDescarga {
 export interface ArchivosModelo {
   /** Bytes que tiene el archivo parcial (0 si no existe). */
   tamanoParcial: () => number;
+  /** Bytes que tiene el archivo definitivo (0 si no existe). */
+  tamanoDefinitivo: () => number;
   borrarParcial: () => void;
   /** MD5 del archivo parcial, o `null` si no se pudo calcular. */
   md5Parcial: () => Promise<string | null>;
