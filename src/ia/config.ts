@@ -29,8 +29,7 @@ export const FORMULARIO_REPORTES: FormularioReportes = { url: '', campo: '' };
 /**
  * El modelo que se ofrece: Gemma 4 E2B en formato LiteRT-LM (el nombre se muestra igual en todos los idiomas).
  * La URL lleva el commit del repositorio en Hugging Face, así el archivo no cambia aunque lo actualicen.
- * El tamaño y el MD5 son los de ese archivo; su SHA-256 (`181938105e0e…a63c`) coincide con el que fija
- * `expo-ai-kit` para `gemma-e2b`.
+ * El tamaño y el SHA-256 son los de ese archivo; coincide con el que fija `expo-ai-kit` para `gemma-e2b`.
  */
 export const MODELO = {
   /** Id en el catálogo de `expo-ai-kit`; también da nombre al archivo (`<id>.litertlm`) en `files/models/`. */
@@ -38,5 +37,5 @@ export const MODELO = {
   nombre: 'Gemma 4 E2B',
   url: 'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1/gemma-4-E2B-it.litertlm',
   tamanoBytes: 2_588_147_712,
-  md5: '1b8446203a216cfd31f6a2a22f75e5e5',
+  sha256: '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c',
 } as const;

@@ -4,7 +4,7 @@
  * La librería de IA baja el modelo de una sola vez: si se corta, empieza de cero (2.6 GB) y, aun así, no
  * revisa que el archivo esté entero al abrir la app. Aquí se descarga a un archivo parcial que se conserva
  * entre cortes y cierres de la app, se continúa con una petición `Range` desde lo que ya hay, y **solo** cuando
- * el archivo tiene el tamaño exacto y el MD5 esperado se mueve a su lugar definitivo. Mientras tanto, para la
+ * el archivo tiene el tamaño exacto y el SHA-256 esperado se mueve a su lugar definitivo. Mientras tanto, para la
  * librería el modelo «no existe», así que nunca puede cargar un archivo a medias.
  */
 
@@ -13,8 +13,8 @@ export interface EspecModelo {
   url: string;
   /** Tamaño exacto del archivo, en bytes. */
   tamanoBytes: number;
-  /** MD5 del archivo completo, en minúsculas. */
-  md5: string;
+  /** SHA-256 del archivo completo, en minúsculas. */
+  sha256: string;
 }
 
 export type ResultadoDescarga = 'completa' | 'pausada';
@@ -36,8 +36,8 @@ export interface ArchivosModelo {
   /** Bytes que tiene el archivo definitivo (0 si no existe). */
   tamanoDefinitivo: () => number;
   borrarParcial: () => void;
-  /** MD5 del archivo parcial, o `null` si no se pudo calcular. */
-  md5Parcial: () => Promise<string | null>;
+  /** SHA-256 del archivo parcial, o `null` si no se pudo calcular. */
+  sha256Parcial: () => Promise<string | null>;
   /** Mueve el parcial a su lugar definitivo. */
   promoverParcial: () => void;
   /** `desde` bytes ya descargados: 0 empieza de cero y más de 0 continúa con una petición `Range`. */
@@ -47,7 +47,12 @@ export interface ArchivosModelo {
 /** Error con un `code` como los de la librería de IA, para que `traducirErrorIA` lo entienda. */
 export class ErrorDescarga extends Error {
   constructor(
-    public code: 'DOWNLOAD_FAILED' | 'DOWNLOAD_CORRUPT' | 'DOWNLOAD_CANCELLED' | 'DOWNLOAD_STORAGE_FULL',
+    public code:
+      | 'DOWNLOAD_FAILED'
+      | 'DOWNLOAD_CORRUPT'
+      | 'DOWNLOAD_UNVERIFIED'
+      | 'DOWNLOAD_CANCELLED'
+      | 'DOWNLOAD_STORAGE_FULL',
     mensaje?: string,
   ) {
     super(mensaje ?? code);
@@ -69,7 +74,8 @@ export interface Descarga {
    * Empieza o continúa. `onProgreso` recibe la fracción (0–1); `onVerificando` se llama cuando ya se bajó todo y se
    * comprueba el archivo. Resuelve `completa` (archivo verificado y en su sitio) o `pausada`.
    * Rechaza con `ErrorDescarga`: `DOWNLOAD_FAILED` (se corta, lo descargado se conserva), `DOWNLOAD_CORRUPT`
-   * (el archivo no coincide: se borra) o `DOWNLOAD_CANCELLED` (se descartó).
+   * (el archivo no coincide: se borra), `DOWNLOAD_UNVERIFIED` (no se pudo calcular el hash: se conserva) o
+   * `DOWNLOAD_CANCELLED` (se descartó).
    */
   iniciar: (onProgreso: (fraccion: number) => void, onVerificando?: () => void) => Promise<ResultadoDescarga>;
   /** Detiene la descarga conservando lo descargado. */
@@ -78,7 +84,7 @@ export interface Descarga {
   descartar: () => void;
 }
 
-/** Deja que la pantalla se repinte antes del MD5 (si no hay módulo nativo, bloquea el hilo de JavaScript). */
+/** Deja que la pantalla se repinte antes de calcular el SHA-256 (es una lectura de gigas). */
 const cederPasoPorDefecto = () => new Promise<void>((resolver) => setTimeout(resolver, 60));
 
 export function crearDescarga(
@@ -134,9 +140,15 @@ export function crearDescarga(
       }
       onVerificando?.();
       await cederPaso();
-      if (tamano > espec.tamanoBytes || (await archivos.md5Parcial())?.toLowerCase() !== espec.md5.toLowerCase()) {
+      const hash = await archivos.sha256Parcial();
+      if (tamano > espec.tamanoBytes || (hash !== null && hash.toLowerCase() !== espec.sha256.toLowerCase())) {
         archivos.borrarParcial();
         throw new ErrorDescarga('DOWNLOAD_CORRUPT');
+      }
+      if (hash === null) {
+        // Sin hash no se puede dar el archivo por bueno, pero tampoco está demostrado que esté mal: se conserva
+        // para no obligar a bajar 2.6 GB otra vez y se pide reintentar.
+        throw new ErrorDescarga('DOWNLOAD_UNVERIFIED');
       }
       archivos.promoverParcial();
       return 'completa';

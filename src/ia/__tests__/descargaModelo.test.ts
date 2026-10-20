@@ -8,13 +8,13 @@ import {
   type TareaDescarga,
 } from '../descargaModelo';
 
-const ESPEC: EspecModelo = { url: 'https://ejemplo.test/modelo.litertlm', tamanoBytes: 1000, md5: 'abc123' };
+const ESPEC: EspecModelo = { url: 'https://ejemplo.test/modelo.litertlm', tamanoBytes: 1000, sha256: 'abc123' };
 
 type Modo = 'completa' | 'falla' | 'ensenia-corte' | 'espera';
 
 interface Disco {
   parcial: number;
-  md5: string | null;
+  sha256: string | null;
   promovido: boolean;
   borrados: number;
   llamadas: { url: string; desde: number }[];
@@ -27,10 +27,10 @@ interface Disco {
 }
 
 /** Un disco y un descargador falsos: cada tarea escribe bytes en el parcial según el `modo`. */
-function crear(inicial: Partial<Pick<Disco, 'parcial' | 'md5'>> = {}, modo: Modo = 'completa') {
+function crear(inicial: Partial<Pick<Disco, 'parcial' | 'sha256'>> = {}, modo: Modo = 'completa') {
   const disco: Disco = {
     parcial: inicial.parcial ?? 0,
-    md5: inicial.md5 === undefined ? ESPEC.md5 : inicial.md5,
+    sha256: inicial.sha256 === undefined ? ESPEC.sha256 : inicial.sha256,
     promovido: false,
     borrados: 0,
     llamadas: [],
@@ -48,7 +48,7 @@ function crear(inicial: Partial<Pick<Disco, 'parcial' | 'md5'>> = {}, modo: Modo
       disco.parcial = 0;
       disco.borrados += 1;
     },
-    md5Parcial: async () => disco.md5,
+    sha256Parcial: async () => disco.sha256,
     promoverParcial: () => {
       disco.promovido = true;
       disco.parcial = 0;
@@ -165,8 +165,8 @@ describe('crearDescarga', () => {
     expect(disco.promovido).toBe(false);
   });
 
-  it('si el MD5 no coincide, el archivo se descarta y nunca llega a su sitio', async () => {
-    const { archivos, disco } = crear({ md5: 'otro-hash' });
+  it('si el SHA-256 no coincide, el archivo se descarta y nunca llega a su sitio', async () => {
+    const { archivos, disco } = crear({ sha256: 'otro-hash' });
     await expect(crearDescarga(archivos, ESPEC, sinEspera).iniciar(() => {})).rejects.toMatchObject({
       code: 'DOWNLOAD_CORRUPT',
     });
@@ -175,26 +175,28 @@ describe('crearDescarga', () => {
     expect(disco.promovido).toBe(false);
   });
 
-  it('si no se pudo calcular el MD5, tampoco se da por bueno', async () => {
-    const { archivos, disco } = crear({ md5: null });
+  it('si no se pudo calcular el SHA-256, se conserva lo descargado y se pide reintentar', async () => {
+    const { archivos, disco } = crear({ sha256: null });
     await expect(crearDescarga(archivos, ESPEC, sinEspera).iniciar(() => {})).rejects.toMatchObject({
-      code: 'DOWNLOAD_CORRUPT',
+      code: 'DOWNLOAD_UNVERIFIED',
     });
+    expect(disco.borrados).toBe(0);
+    expect(disco.parcial).toBe(ESPEC.tamanoBytes);
     expect(disco.promovido).toBe(false);
   });
 
-  it('el MD5 se compara sin importar mayúsculas', async () => {
-    const { archivos, disco } = crear({ md5: 'ABC123' });
+  it('el SHA-256 se compara sin importar mayúsculas', async () => {
+    const { archivos, disco } = crear({ sha256: 'ABC123' });
     expect(await crearDescarga(archivos, ESPEC, sinEspera).iniciar(() => {})).toBe('completa');
     expect(disco.promovido).toBe(true);
   });
 
-  it('avisa de que está verificando antes de calcular el MD5 y cede un paso para repintar', async () => {
+  it('avisa de que está verificando antes de calcular el SHA-256 y cede un paso para repintar', async () => {
     const orden: string[] = [];
     const { archivos } = crear();
-    const original = archivos.md5Parcial;
-    archivos.md5Parcial = async () => {
-      orden.push('md5');
+    const original = archivos.sha256Parcial;
+    archivos.sha256Parcial = async () => {
+      orden.push('sha256');
       return original();
     };
     const cederPaso = async () => {
@@ -204,7 +206,7 @@ describe('crearDescarga', () => {
       () => {},
       () => orden.push('verificando'),
     );
-    expect(orden).toEqual(['verificando', 'ceder', 'md5']);
+    expect(orden).toEqual(['verificando', 'ceder', 'sha256']);
   });
 
   describe('pausa y descarte', () => {

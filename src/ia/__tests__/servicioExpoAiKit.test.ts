@@ -30,7 +30,7 @@ const mockArchivos: ArchivosModelo = {
   tamanoParcial: jest.fn(() => 0),
   tamanoDefinitivo: jest.fn(() => 0),
   borrarParcial: jest.fn(),
-  md5Parcial: jest.fn(async () => '1b8446203a216cfd31f6a2a22f75e5e5'),
+  sha256Parcial: jest.fn(async () => '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c'),
   promoverParcial: jest.fn(),
   crearTarea: jest.fn(),
 };

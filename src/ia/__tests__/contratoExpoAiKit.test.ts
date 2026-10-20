@@ -26,7 +26,8 @@ describe('contrato con expo-ai-kit', () => {
     const bloque = entrada.slice(0, entrada.indexOf('},'));
     expect(bloque).toContain("name: 'Gemma 4 E2B'");
     expect(bloque).toContain('gemma-4-E2B-it.litertlm');
-    expect(bloque).toContain("sha256: '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c'");
+    expect(MODELO.sha256).toBe('181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c');
+    expect(bloque).toContain(`sha256: '${MODELO.sha256}'`);
     expect(bloque.replace(/_/g, '')).toContain(String(MODELO.tamanoBytes));
   });
 
@@ -34,7 +35,7 @@ describe('contrato con expo-ai-kit', () => {
     expect(MODELO.url).toMatch(
       /^https:\/\/huggingface\.co\/litert-community\/gemma-4-E2B-it-litert-lm\/resolve\/[0-9a-f]{40}\/gemma-4-E2B-it\.litertlm$/,
     );
-    expect(MODELO.md5).toMatch(/^[0-9a-f]{32}$/);
+    expect(MODELO.sha256).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('la versión instalada es la que se probó (0.18.2)', () => {

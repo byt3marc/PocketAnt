@@ -42,10 +42,12 @@ describe('módulo nativo descarga-segundo-plano', () => {
     expect(modulo).toMatch(/Function\("iniciar"\) \{ textos: Map<String, String> ->/);
     expect(modulo).toMatch(/Function\("actualizar"\) \{ fraccion: Double, texto: String ->/);
     expect(modulo).toMatch(/Function\("terminar"\) \{ titulo: String, texto: String, mostrarAviso: Boolean ->/);
+    expect(modulo).toMatch(/AsyncFunction\("sha256"\) Coroutine \{ ruta: String ->/);
     const js = leer('index.ts');
     expect(js).toContain('iniciar: (textos: TextosNotificacion) => void');
     expect(js).toContain('actualizar: (fraccion: number, texto: string) => void');
     expect(js).toContain('terminar: (titulo: string, texto: string, mostrarAviso: boolean) => void');
+    expect(js).toContain('sha256?: (ruta: string) => Promise<string>');
   });
 
   it('las claves de los textos son las mismas en JavaScript y en Kotlin', () => {
@@ -97,6 +99,21 @@ describe('módulo nativo descarga-segundo-plano', () => {
     expect(servicio).toContain('invoke("pausar")');
     expect(servicio).toContain('invoke("cancelar")');
     expect(leer('index.ts')).toContain("'pausar' | 'cancelar'");
+  });
+
+  it('verifica el archivo con SHA-256 y no con MD5', () => {
+    const modulo = kotlin('DescargaSegundoPlanoModule.kt');
+    expect(modulo).toContain('MessageDigest.getInstance("SHA-256")');
+    expect(modulo).not.toContain('MessageDigest.getInstance("MD5")');
+    expect(leer('index.ts')).toContain('sha256DeArchivo');
+  });
+
+  it('un segundo iniciar no deja huérfano el WakeLock', () => {
+    const servicio = kotlin('DescargaService.kt');
+    // Se suelta el anterior antes de pedir otro.
+    expect(servicio).toMatch(/private fun adquirirWakeLock\(\) \{[\s\S]*?liberarWakeLock\(\)[\s\S]*?newWakeLock/);
+    // Con el servicio ya en marcha, no se vuelve a iniciar ni a adquirir otro.
+    expect(servicio).toMatch(/if \(iniciado\) \{\s*actualizar\(0\.0, texto\)\s*return\s*\}/);
   });
 
   it('el build.gradle usa el plugin de módulos de Expo y el mismo espacio de nombres', () => {

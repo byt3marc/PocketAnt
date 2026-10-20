@@ -389,6 +389,7 @@ export const en: Record<ClaveTexto, string> = {
   'ia.error_descarga': 'The download was interrupted. What you downloaded is kept: check your connection and resume.',
   'ia.error_disco': 'There is not enough space for the model.',
   'ia.error_corrupto': 'The downloaded file was damaged and has been discarded. Download it again.',
+  'ia.error_verificar': 'The file could not be verified. What you downloaded is kept: try again.',
   'ia.error_carga': 'The model could not be prepared. Try again.',
   'ia.error_memoria': 'Out of memory. Close other apps and try again.',
   'ia.error_generar': 'The AI could not finish the report. Try again.',

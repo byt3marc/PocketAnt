@@ -5,6 +5,7 @@ describe('traducirErrorIA', () => {
     ['DOWNLOAD_FAILED', 'ia.error_descarga'],
     ['DOWNLOAD_STORAGE_FULL', 'ia.error_disco'],
     ['DOWNLOAD_CORRUPT', 'ia.error_corrupto'],
+    ['DOWNLOAD_UNVERIFIED', 'ia.error_verificar'],
     ['MODEL_LOAD_FAILED', 'ia.error_carga'],
     ['MODEL_NOT_DOWNLOADED', 'ia.error_carga'],
     ['INFERENCE_OOM', 'ia.error_memoria'],

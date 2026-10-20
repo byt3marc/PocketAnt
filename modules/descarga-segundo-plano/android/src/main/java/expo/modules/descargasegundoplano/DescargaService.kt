@@ -62,6 +62,13 @@ class DescargaService : Service() {
       intent.getStringExtra(EXTRA_CANAL_RESULTADO) ?: "Model status"
     )
 
+    // Si el servicio ya está en marcha (p. ej. JavaScript se recarga en desarrollo), solo se repinta el aviso:
+    // no se vuelve a llamar a `startForeground` ni se pide otro WakeLock.
+    if (iniciado) {
+      actualizar(0.0, texto)
+      return
+    }
+
     val notificacion = construirProgreso(texto, 0)
     try {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -164,6 +171,9 @@ class DescargaService : Service() {
   private fun gestor(): NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
   private fun adquirirWakeLock() {
+    // Nunca dos a la vez: un `iniciar` repetido reemplazaba el campo sin soltar el anterior, que seguía
+    // manteniendo la CPU despierta hasta agotar su plazo.
+    liberarWakeLock()
     val energia = getSystemService(Context.POWER_SERVICE) as PowerManager
     wakeLock = energia.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "pocketant:descarga-modelo").apply {
       setReferenceCounted(false)

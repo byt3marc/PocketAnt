@@ -391,6 +391,7 @@ export const es = {
   'ia.error_descarga': 'Se cortó la descarga. Lo descargado se conserva: revisa tu conexión y continúa.',
   'ia.error_disco': 'No hay espacio suficiente para el modelo.',
   'ia.error_corrupto': 'El archivo descargado estaba dañado y se descartó. Vuelve a descargarlo.',
+  'ia.error_verificar': 'No se pudo verificar el archivo. Lo descargado se conserva: vuelve a intentarlo.',
   'ia.error_carga': 'No se pudo preparar el modelo. Vuelve a intentarlo.',
   'ia.error_memoria': 'Se acabó la memoria. Cierra otras apps e inténtalo de nuevo.',
   'ia.error_generar': 'La IA no pudo terminar el informe. Vuelve a intentarlo.',

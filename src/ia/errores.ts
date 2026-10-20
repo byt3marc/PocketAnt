@@ -53,6 +53,8 @@ export function traducirErrorIA(error: unknown): ErrorTraducido {
       return resultado(false, 'ia.error_disco');
     case 'DOWNLOAD_CORRUPT':
       return resultado(false, 'ia.error_corrupto');
+    case 'DOWNLOAD_UNVERIFIED':
+      return resultado(false, 'ia.error_verificar');
     case 'MODEL_LOAD_FAILED':
     case 'MODEL_NOT_DOWNLOADED':
     case 'MODEL_NOT_FOUND':

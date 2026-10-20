@@ -2,7 +2,7 @@ import { crearArchivosModelo } from '../archivosModeloExpo';
 
 // `expo-file-system` es nativo: se reemplaza por un falso que anota qué rutas y qué llamadas se hacen.
 const mockRegistro: {
-  archivos: Map<string, { exists: boolean; size: number; md5: string | null; borrados: number; movidoA: string | null }>;
+  archivos: Map<string, { exists: boolean; size: number; borrados: number; movidoA: string | null }>;
   tareas: { tipo: 'nueva' | 'savable'; url: string; destino: string; resumeData?: string; opciones: unknown }[];
   carpetasCreadas: string[];
   /** Hace que las tareas terminen como si se hubieran pausado (`null`). */
@@ -25,7 +25,7 @@ jest.mock('expo-file-system', () => {
 
   const estadoDe = (uri: string) => {
     if (!mockRegistro.archivos.has(uri)) {
-      mockRegistro.archivos.set(uri, { exists: false, size: 0, md5: null, borrados: 0, movidoA: null });
+      mockRegistro.archivos.set(uri, { exists: false, size: 0, borrados: 0, movidoA: null });
     }
     return mockRegistro.archivos.get(uri)!;
   };
@@ -40,9 +40,6 @@ jest.mock('expo-file-system', () => {
     }
     get size() {
       return estadoDe(this.uri).size;
-    }
-    get md5() {
-      return estadoDe(this.uri).md5;
     }
     delete() {
       const e = estadoDe(this.uri);
@@ -94,8 +91,8 @@ const CARPETA = 'file:///data/user/0/app/files/models';
 const PARCIAL = `${CARPETA}/gemma-e2b.litertlm.tmp`;
 const DEFINITIVO = `${CARPETA}/gemma-e2b.litertlm`;
 
-const poner = (uri: string, valores: Partial<{ exists: boolean; size: number; md5: string | null }>) => {
-  mockRegistro.archivos.set(uri, { exists: false, size: 0, md5: null, borrados: 0, movidoA: null, ...valores });
+const poner = (uri: string, valores: Partial<{ exists: boolean; size: number }>) => {
+  mockRegistro.archivos.set(uri, { exists: false, size: 0, borrados: 0, movidoA: null, ...valores });
 };
 
 beforeEach(() => {
@@ -138,24 +135,26 @@ describe('crearArchivosModelo', () => {
     expect(mockRegistro.archivos.get(PARCIAL)!.borrados).toBe(1);
   });
 
-  it('sin módulo nativo, el MD5 sale del archivo parcial (expo-file-system)', async () => {
-    poner(PARCIAL, { exists: true, size: 1, md5: 'abc' });
-    expect(await crearArchivosModelo('gemma-e2b', null).md5Parcial()).toBe('abc');
+  it('sin módulo nativo no hay SHA-256: devuelve null sin tocar el archivo (no se congela la app)', async () => {
+    poner(PARCIAL, { exists: true, size: 1 });
+    expect(await crearArchivosModelo('gemma-e2b', null).sha256Parcial()).toBeNull();
+    expect(mockRegistro.archivos.get(PARCIAL)!.borrados).toBe(0);
   });
 
-  it('con módulo nativo, el MD5 se calcula fuera del hilo de JavaScript sobre la URI del parcial', async () => {
-    poner(PARCIAL, { exists: true, size: 1, md5: 'lento' });
-    const md5Nativo = jest.fn(async () => 'rapido');
-    expect(await crearArchivosModelo('gemma-e2b', md5Nativo).md5Parcial()).toBe('rapido');
-    expect(md5Nativo).toHaveBeenCalledWith(PARCIAL);
+  it('con módulo nativo, el SHA-256 se calcula fuera del hilo de JavaScript sobre la URI del parcial', async () => {
+    poner(PARCIAL, { exists: true, size: 1 });
+    const sha256Nativo = jest.fn(async () => 'rapido');
+    expect(await crearArchivosModelo('gemma-e2b', sha256Nativo).sha256Parcial()).toBe('rapido');
+    expect(sha256Nativo).toHaveBeenCalledWith(PARCIAL);
   });
 
-  it('si el MD5 nativo falla, se usa el de expo-file-system (no se da por corrupto un archivo bueno)', async () => {
-    poner(PARCIAL, { exists: true, size: 1, md5: 'abc' });
-    const md5Nativo = jest.fn(async () => {
+  it('si el SHA-256 nativo falla, devuelve null y no borra el archivo (se reintenta)', async () => {
+    poner(PARCIAL, { exists: true, size: 1 });
+    const sha256Nativo = jest.fn(async () => {
       throw new Error('E/S');
     });
-    expect(await crearArchivosModelo('gemma-e2b', md5Nativo).md5Parcial()).toBe('abc');
+    expect(await crearArchivosModelo('gemma-e2b', sha256Nativo).sha256Parcial()).toBeNull();
+    expect(mockRegistro.archivos.get(PARCIAL)!.borrados).toBe(0);
   });
 
   it('al promover reemplaza un modelo viejo que hubiera en su sitio', () => {

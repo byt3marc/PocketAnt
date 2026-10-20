@@ -16,7 +16,7 @@ import java.security.MessageDigest
 /**
  * Puente entre JavaScript y [DescargaService]. La descarga en sí la hace JavaScript; este módulo solo enciende el
  * servicio en primer plano (con su notificación de progreso), lo actualiza y lo apaga, y avisa a JavaScript cuando
- * el usuario toca «Pausar» o «Cancelar» en la notificación. También calcula el MD5 del archivo descargado fuera del
+ * el usuario toca «Pausar» o «Cancelar» en la notificación. También calcula el SHA-256 del archivo descargado fuera del
  * hilo de JavaScript (son ~2.6 GB: hacerlo allí congelaría la app varios segundos).
  */
 class DescargaSegundoPlanoModule : Module() {
@@ -67,17 +67,17 @@ class DescargaSegundoPlanoModule : Module() {
       Unit
     }
 
-    // MD5 en hexadecimal (minúsculas) de un archivo, leído en bloques de 1 MB en un hilo de E/S. `ruta` puede ser una
-    // ruta o una URI `file://` (la `uri` de `File` de expo-file-system).
-    AsyncFunction("md5") Coroutine { ruta: String ->
-      withContext(Dispatchers.IO) { md5DeArchivo(ruta) }
+    // SHA-256 en hexadecimal (minúsculas) de un archivo, leído en bloques de 1 MB en un hilo de E/S. `ruta` puede ser
+    // una ruta o una URI `file://` (la `uri` de `File` de expo-file-system).
+    AsyncFunction("sha256") Coroutine { ruta: String ->
+      withContext(Dispatchers.IO) { sha256DeArchivo(ruta) }
     }
   }
 }
 
-private fun md5DeArchivo(ruta: String): String {
+private fun sha256DeArchivo(ruta: String): String {
   val camino = if (ruta.startsWith("file:")) Uri.parse(ruta).path ?: ruta else ruta
-  val resumen = MessageDigest.getInstance("MD5")
+  val resumen = MessageDigest.getInstance("SHA-256")
   File(camino).inputStream().use { entrada ->
     val bloque = ByteArray(1024 * 1024)
     while (true) {
