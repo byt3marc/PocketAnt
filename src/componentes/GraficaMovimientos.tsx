@@ -14,6 +14,7 @@ import { calcularEscala } from '@/dominio/escala';
 import { inicialDia, nombreDiaCorto, numeroDia } from '@/dominio/fechas';
 import { formatearCompacto } from '@/dominio/formato';
 import type { PuntoDia } from '@/dominio/series';
+import { RADIO_PUNTERO, posicionTooltip, topLibreria } from '@/dominio/tooltip';
 import type { Idioma } from '@/i18n/traducir';
 import { estiloDeFuente } from '@/tema/fuentes';
 
@@ -28,6 +29,8 @@ const ANCHO_TOOLTIP = 156;
 const ALTO_TOOLTIP = 96;
 const HUECO_ENTRE_BARRAS = 1;
 const ALTO_EXTRA = 44; // eje X y etiquetas, que la librería dibuja debajo de la altura pedida
+/** A partir de aquí se ocultan los puntos y el tooltip vuelve al sitio de la librería. */
+const MAX_DIAS_CON_PUNTOS = 14;
 
 /** Medidas de la gráfica normal (pantalla de detalle) y de la compacta (Home, en dos columnas). */
 const MEDIDAS = {
@@ -106,6 +109,7 @@ function GraficaLineas({
   const { ajustes, colores, i18n } = useAjustes();
   const m = compacto ? MEDIDAS.compacto : MEDIDAS.normal;
   const total = serie.length;
+  const hayPuntos = total <= MAX_DIAS_CON_PUNTOS;
   const anchoGrafica = ancho - m.anchoEjeY - MARGEN_DERECHO;
   const espaciado = total > 1 ? (anchoGrafica - 2 * m.margenLateral) / (total - 1) : 0;
   const escala = calcularEscala(valorMaximo(serie));
@@ -143,8 +147,8 @@ function GraficaLineas({
       color2={colores.gasto}
       thickness1={m.grosor}
       thickness2={m.grosor}
-      hideDataPoints1={total > 14}
-      hideDataPoints2={total > 14}
+      hideDataPoints1={!hayPuntos}
+      hideDataPoints2={!hayPuntos}
       dataPointsRadius1={compacto ? 2.5 : 3.5}
       dataPointsRadius2={compacto ? 2.5 : 3.5}
       dataPointsColor1={colores.ingreso}
@@ -178,15 +182,35 @@ function GraficaLineas({
               pointerStripWidth: 1.5,
               pointer1Color: colores.ingreso,
               pointer2Color: colores.gasto,
-              radius: 5,
+              // El radio lo usa también el delta del tooltip (ver `@/dominio/tooltip`): no cambiarlo sin revisar ahí.
+              radius: RADIO_PUNTERO,
               activatePointersInstantlyOnTouch: true,
               pointerVanishDelay: 2500,
               pointerLabelWidth: ANCHO_TOOLTIP,
               pointerLabelHeight: ALTO_TOOLTIP,
               autoAdjustPointerLabelPosition: true,
-              pointerLabelComponent: (_items: unknown, _secundarios: unknown, indice: number) => (
-                <TooltipDia punto={serie[indice]} ancho={ANCHO_TOOLTIP} />
-              ),
+              stripOverPointer: true,
+              // Se invoca como función (no como componente): sin hooks dentro.
+              pointerLabelComponent: (_items: unknown, _secundarios: unknown, indice: number) => {
+                const punto = serie[indice];
+                if (!punto) return null;
+                // Mismo Y que la librería para el centro de cada punto: `getY(v) = alto + 10 − (v / maximo) · alto`.
+                const getY = (valor: number) => alto + 10 - (valor * alto) / escala.maximo;
+                // La librería ancla la caja al puntero más alto (5 dp por encima del centro); el delta
+                // mueve la caja a donde no tape ninguno de los dos puntos. Sin puntos en pantalla
+                // (`hideDataPoints`) no hay nada que proteger: se deja el sitio de la librería.
+                const yL = Math.min(getY(punto.ingresos), getY(punto.gastos)) - RADIO_PUNTERO;
+                const topLibreriaDelDia = topLibreria(yL, ALTO_TOOLTIP);
+                const objetivo = hayPuntos
+                  ? posicionTooltip(getY(punto.ingresos), getY(punto.gastos), alto, ALTO_TOOLTIP)
+                  : null;
+                const deltaY = Math.round((objetivo ?? topLibreriaDelDia) - topLibreriaDelDia);
+                return (
+                  <View pointerEvents="none" style={{ transform: [{ translateY: deltaY }] }}>
+                    <TooltipDia punto={punto} ancho={ANCHO_TOOLTIP} />
+                  </View>
+                );
+              },
             }
       }
     />

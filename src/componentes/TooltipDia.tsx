@@ -30,26 +30,39 @@ export function TooltipDia({ punto, ancho }: Props) {
 
   return (
     <View style={[estilos.caja, { width: ancho }]}>
-      <Texto variante="secundario" negrita>
+      {/* Sin escalado de fuente: la caja mide `ALTO_TOOLTIP` fijo y con letra grande volvería a tapar los puntos. */}
+      <Texto variante="secundario" negrita allowFontScaling={false}>
         {formatearDia(punto.clave, i18n)}
       </Texto>
       <View style={estilos.fila}>
-        <Texto variante="pequeno" color="ingreso" negrita>
+        <Texto variante="pequeno" color="ingreso" negrita allowFontScaling={false}>
           {i18n.t('tooltip.ingresos')}
         </Texto>
-        <Texto variante="pequeno" color="ingreso" negrita style={estilos.numero}>
+        <Texto
+          variante="pequeno"
+          color="ingreso"
+          negrita
+          allowFontScaling={false}
+          style={estilos.numero}
+        >
           {formatear(punto.ingresos, { conSigno: true })}
         </Texto>
       </View>
       <View style={estilos.fila}>
-        <Texto variante="pequeno" color="gasto" negrita>
+        <Texto variante="pequeno" color="gasto" negrita allowFontScaling={false}>
           {i18n.t('tooltip.gastos')}
         </Texto>
-        <Texto variante="pequeno" color="gasto" negrita style={estilos.numero}>
+        <Texto
+          variante="pequeno"
+          color="gasto"
+          negrita
+          allowFontScaling={false}
+          style={estilos.numero}
+        >
           {formatear(-punto.gastos)}
         </Texto>
       </View>
-      <Texto variante="pequeno" numberOfLines={1}>
+      <Texto variante="pequeno" numberOfLines={1} allowFontScaling={false}>
         {resumirMotivos(punto, i18n)}
       </Texto>
     </View>
