@@ -1,21 +1,21 @@
 {
-  "actualizada": "2026-10-15",
+  "actualizada": "2026-10-24",
   "contacto": "",
   "es": {
     "titulo": "Política de privacidad",
-    "fecha": "Última actualización: 15 de octubre de 2026",
+    "fecha": "Última actualización: 24 de octubre de 2026",
     "intro": "Pocketant es una app para anotar tus ingresos y gastos. Está hecha para que tus datos se queden contigo: no tiene cuentas, anuncios ni analítica, y no usa servidores propios.",
     "secciones": [
       {
         "titulo": "Qué datos guarda y dónde",
         "parrafos": [
-          "Los movimientos que anotas (monto, motivo, fecha y si se repite) y tus ajustes (tema, idioma, moneda, fuente y avisos) se guardan solo en tu teléfono. Nadie más los puede ver, tampoco quien hace la app."
+          "Los movimientos que anotas (monto, motivo, fecha y si se repite), las fotos que les adjuntas y tus ajustes (tema, idioma, moneda, fuente y avisos) se guardan solo en tu teléfono. Nadie más los puede ver, tampoco quien hace la app."
         ]
       },
       {
         "titulo": "Qué no recogemos",
         "parrafos": [
-          "No pedimos registro ni cuenta. No hay anuncios, analítica ni seguimiento, y no vendemos ni compartimos datos con nadie. La app no usa tu ubicación, contactos, fotos, cámara ni micrófono."
+          "No pedimos registro ni cuenta. No hay anuncios, analítica ni seguimiento, y no vendemos ni compartimos datos con nadie. La app no usa tu ubicación, contactos ni micrófono: solo accede a tus fotos o a la cámara cuando tú decides adjuntar una imagen a un movimiento, y esa imagen se queda en tu teléfono."
         ]
       },
       {
@@ -41,8 +41,8 @@
       {
         "titulo": "Copias de seguridad",
         "parrafos": [
-          "«Exportar datos» crea un archivo JSON que compartes tú, donde tú elijas.",
-          "Si tienes activada la copia de seguridad de Android, el sistema puede incluir tus movimientos y ajustes en la copia cifrada de tu cuenta de Google, para recuperarlos en otro teléfono. El modelo de IA no se incluye. Esa copia la gestiona Android y la controlas desde los ajustes del teléfono."
+          "«Exportar datos» crea un archivo JSON que compartes tú, donde tú elijas. Si adjuntaste fotos, van dentro del archivo en formato Base64.",
+          "Si tienes activada la copia de seguridad de Android, el sistema puede incluir tus movimientos, sus fotos y tus ajustes en la copia cifrada de tu cuenta de Google, para recuperarlos en otro teléfono. El modelo de IA no se incluye. Esa copia la gestiona Android y la controlas desde los ajustes del teléfono."
         ]
       },
       {
@@ -55,7 +55,7 @@
       {
         "titulo": "Borrar tus datos",
         "parrafos": [
-          "Puedes borrar cualquier movimiento desde la app. Al borrarlo, la app lo conserva marcado como borrado para que no reaparezca al importar o sincronizar.",
+          "Puedes borrar cualquier movimiento desde la app; sus fotos se borran con él. Al borrarlo, la app lo conserva marcado como borrado para que no reaparezca al importar o sincronizar.",
           "También puedes borrarlo todo desde la propia app: Ajustes → Borrar datos. Si tienes conectada una copia de Google Drive, el borrado llega también a esa copia.",
           "Para borrarlo todo: Ajustes del teléfono → Apps → Pocketant → Almacenamiento → Borrar datos, o desinstala la app. Si guardaste una copia en Google Drive, puedes borrarla desde Drive (Configuración → Administrar apps → Pocketant → Borrar datos ocultos de la app)."
         ]
@@ -77,19 +77,19 @@
   },
   "en": {
     "titulo": "Privacy policy",
-    "fecha": "Last updated: October 15, 2026",
+    "fecha": "Last updated: October 24, 2026",
     "intro": "Pocketant is an app to keep track of your income and expenses. It's built so your data stays with you: there are no accounts, ads or analytics, and it has no servers of its own.",
     "secciones": [
       {
         "titulo": "What data it keeps and where",
         "parrafos": [
-          "The entries you add (amount, reason, date and whether they repeat) and your settings (theme, language, currency, font and reminders) are stored only on your phone. Nobody else can see them, including the app's developer."
+          "The entries you add (amount, reason, date and whether they repeat), the photos you attach to them, and your settings (theme, language, currency, font and reminders) are stored only on your phone. Nobody else can see them, including the app's developer."
         ]
       },
       {
         "titulo": "What we don't collect",
         "parrafos": [
-          "There's no sign-up or account. There are no ads, analytics or tracking, and we don't sell or share data with anyone. The app doesn't use your location, contacts, photos, camera or microphone."
+          "There's no sign-up or account. There are no ads, analytics or tracking, and we don't sell or share data with anyone. The app doesn't use your location, contacts or microphone: it only accesses your photos or camera when you choose to attach an image to an entry, and that image stays on your phone."
         ]
       },
       {
@@ -115,8 +115,8 @@
       {
         "titulo": "Backups",
         "parrafos": [
-          "“Export data” creates a JSON file that you share yourself, wherever you choose.",
-          "If Android backup is on, the system may include your entries and settings in your Google account's encrypted backup, so you can restore them on another phone. The AI model isn't included. That backup is managed by Android and you control it from the phone's settings."
+          "“Export data” creates a JSON file that you share yourself, wherever you choose. If you attached photos, they're inside the file as Base64.",
+          "If Android backup is on, the system may include your entries, their photos and your settings in your Google account's encrypted backup, so you can restore them on another phone. The AI model isn't included. That backup is managed by Android and you control it from the phone's settings."
         ]
       },
       {
@@ -129,7 +129,7 @@
       {
         "titulo": "Deleting your data",
         "parrafos": [
-          "You can delete any entry from the app. When you do, the app keeps it marked as deleted so it doesn't come back when importing or syncing.",
+          "You can delete any entry from the app; its photos are deleted with it. When you do, the app keeps it marked as deleted so it doesn't come back when importing or syncing.",
           "You can also delete everything from the app itself: Settings → Clear data. If you've connected a Google Drive copy, the deletion reaches that copy too.",
           "To delete everything: phone Settings → Apps → Pocketant → Storage → Clear data, or uninstall the app. If you saved a copy to Google Drive, you can delete it from Drive (Settings → Manage apps → Pocketant → Delete hidden app data)."
         ]

@@ -27,11 +27,20 @@ export function crearRepositorioMemoria(inicial: readonly Movimiento[] = []): Re
     },
     async eliminar(id, ahora) {
       const actual = almacen.get(id);
-      if (actual) almacen.set(id, { ...actual, eliminado: true, actualizadoEn: ahora.toISOString() });
+      if (actual) {
+        almacen.set(id, {
+          ...actual,
+          eliminado: true,
+          actualizadoEn: ahora.toISOString(),
+          imagenes: undefined,
+        });
+      }
     },
     async limpiarTodo(ahora) {
       const marca = ahora.toISOString();
-      for (const [id, m] of almacen) if (!m.eliminado) almacen.set(id, { ...m, eliminado: true, actualizadoEn: marca });
+      for (const [id, m] of almacen) {
+        if (!m.eliminado) almacen.set(id, { ...m, eliminado: true, actualizadoEn: marca, imagenes: undefined });
+      }
     },
     async fusionar(entrantes) {
       const plan = planificarFusion([...almacen.values()], entrantes);

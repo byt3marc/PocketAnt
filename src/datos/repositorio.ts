@@ -7,11 +7,11 @@ import type { ResumenFusion } from './sincronizacion/fusion';
  * directamente, así el origen de datos se puede ampliar (nube) sin tocar las pantallas.
  */
 export interface RepositorioMovimientos {
-  /** Movimientos visibles, del más reciente al más antiguo. */
+  /** Movimientos visibles, del más reciente al más antiguo, con sus imágenes. */
   listarActivos(): Promise<Movimiento[]>;
-  /** Todos, incluidos los borrados lógicamente (para exportar y sincronizar). */
+  /** Todos, incluidos los borrados lógicamente (para exportar y sincronizar), con sus imágenes. */
   listarTodos(): Promise<Movimiento[]>;
-  /** Inserta o reemplaza por `id`. */
+  /** Inserta o reemplaza por `id`; si trae `imagenes`, reemplaza también sus filas. */
   guardar(movimiento: Movimiento): Promise<void>;
   /** Borrado lógico: conserva el registro para que el borrado se propague. */
   eliminar(id: string, ahora: Date): Promise<void>;

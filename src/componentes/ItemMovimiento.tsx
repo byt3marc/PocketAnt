@@ -24,6 +24,11 @@ function ItemMovimientoBase({ movimiento, hoy, onPress }: Props) {
   const { formatear, i18n } = useAjustes();
   const esIngreso = movimiento.tipo === 'ingreso';
   const recurrencia = describirRecurrencia(movimiento, i18n);
+  const fotos = movimiento.imagenes?.length ?? 0;
+  const detalles = [
+    recurrencia,
+    fotos > 0 ? i18n.plural('item.fotos', fotos) : null,
+  ].filter((texto): texto is string => texto !== null);
   const monto = formatear(esIngreso ? movimiento.monto : -movimiento.monto, { conSigno: true });
   const fecha = formatearDia(movimiento.fecha, i18n, hoy);
 
@@ -35,7 +40,7 @@ function ItemMovimientoBase({ movimiento, hoy, onPress }: Props) {
         motivo: movimiento.motivo,
         monto,
         fecha,
-        recurrencia: recurrencia ? `, ${recurrencia}` : '',
+        recurrencia: detalles.map((texto) => `, ${texto}`).join(''),
       })}
       onPress={() => onPress(movimiento)}
       android_ripple={ONDA}
@@ -56,6 +61,14 @@ function ItemMovimientoBase({ movimiento, hoy, onPress }: Props) {
               <Icono nombre="repeat" tamano={11} color="primario" />
               <Texto variante="pequeno" color="primario" numberOfLines={1}>
                 {recurrencia}
+              </Texto>
+            </View>
+          ) : null}
+          {fotos > 0 ? (
+            <View style={estilos.etiquetaRecurrente}>
+              <Icono nombre="camera" tamano={11} color="textoSecundario" />
+              <Texto variante="pequeno" color="textoSecundario">
+                {fotos}
               </Texto>
             </View>
           ) : null}

@@ -2,10 +2,12 @@ import * as Crypto from 'expo-crypto';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { actualizarMovimiento, crearMovimiento } from '@/dominio/movimiento';
+import type { ImagenBorrador } from '@/dominio/imagenes';
 import { calcularTotales, type Totales } from '@/dominio/saldo';
 import type { EntradaMovimiento, Movimiento } from '@/dominio/tipos';
 import { ErrorTraducible } from '@/i18n/errores';
 
+import { crearAlmacenImagenes, type AlmacenImagenes } from './almacenImagenes';
 import type { RepositorioMovimientos } from './repositorio';
 import type { ProveedorSync } from './sincronizacion/proveedor';
 import {
@@ -23,8 +25,12 @@ interface ContextoDatos {
   /** `true` hasta que termina la primera lectura de la base de datos. */
   cargando: boolean;
   totales: Totales;
-  /** Sin `id` crea un movimiento; con `id` edita el existente. */
-  guardarMovimiento: (entrada: EntradaMovimiento, id?: string) => Promise<void>;
+  /** Sin `id` crea un movimiento; con `id` edita el existente. `imagenes` reemplaza las fotos actuales. */
+  guardarMovimiento: (
+    entrada: EntradaMovimiento,
+    id?: string,
+    imagenes?: readonly ImagenBorrador[],
+  ) => Promise<void>;
   eliminarMovimiento: (id: string) => Promise<void>;
   /** Borra lógicamente todos los movimientos; la sincronización propaga el borrado a la nube. */
   limpiarDatos: () => Promise<void>;
@@ -38,6 +44,8 @@ interface ContextoDatos {
   versionLocal: number;
   /** Sincroniza con un proveedor de nube (trae, fusiona y sube lo que falte) y refresca la lista. */
   sincronizar: (proveedor: ProveedorSync) => Promise<ResultadoSincronizacion>;
+  /** Disco de las fotos: galería, cámara, rutas locales y limpieza de temporales. */
+  almacen: AlmacenImagenes;
 }
 
 const Contexto = createContext<ContextoDatos | null>(null);
@@ -46,10 +54,17 @@ interface Props {
   repositorio: RepositorioMovimientos;
   /** Dónde se exporta/importa. Hoy es un archivo JSON; mañana Google Drive. */
   proveedorSync: ProveedorSync;
+  /** Disco de las fotos; se puede reemplazar en las pruebas. */
+  almacen?: AlmacenImagenes;
   children: ReactNode;
 }
 
-export function DatosProvider({ repositorio, proveedorSync, children }: Props) {
+export function DatosProvider({
+  repositorio,
+  proveedorSync,
+  almacen = crearAlmacenImagenes(),
+  children,
+}: Props) {
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [versionLocal, setVersionLocal] = useState(0);
@@ -79,35 +94,47 @@ export function DatosProvider({ repositorio, proveedorSync, children }: Props) {
     cargando,
     totales: calcularTotales(movimientos),
 
-    guardarMovimiento: async (entrada, id) => {
+    guardarMovimiento: async (entrada, id, imagenes) => {
       const ahora = new Date();
+      let existente: Movimiento | undefined;
       if (id) {
-        const existente = movimientos.find((m) => m.id === id);
+        existente = movimientos.find((m) => m.id === id);
         if (!existente) throw new ErrorTraducible('error.movimiento_inexistente');
-        await repositorio.guardar(actualizarMovimiento(existente, entrada, ahora));
-      } else {
-        await repositorio.guardar(crearMovimiento(entrada, Crypto.randomUUID(), ahora));
       }
+
+      const movimientoId = id ?? Crypto.randomUUID();
+      // Primero los archivos: si falla el guardado, no queda un movimiento apuntando a fotos que no existen.
+      const metadatos = imagenes ? await almacen.guardar(movimientoId, imagenes) : undefined;
+
+      const base = existente
+        ? actualizarMovimiento(existente, entrada, ahora)
+        : crearMovimiento(entrada, movimientoId, ahora);
+      const movimiento = metadatos === undefined ? base : { ...base, imagenes: metadatos };
+
+      await repositorio.guardar(movimiento);
+      if (metadatos !== undefined) almacen.conservar(movimientoId, metadatos);
       await recargar();
       setVersionLocal((v) => v + 1);
     },
 
     eliminarMovimiento: async (id) => {
       await repositorio.eliminar(id, new Date());
+      almacen.eliminarDeMovimiento(id);
       await recargar();
       setVersionLocal((v) => v + 1);
     },
 
     limpiarDatos: async () => {
       await repositorio.limpiarTodo(new Date());
+      almacen.limpiarTodo();
       await recargar();
       setVersionLocal((v) => v + 1);
     },
 
-    exportar: () => exportarDatos(repositorio, proveedorSync),
+    exportar: () => exportarDatos(repositorio, proveedorSync, almacen),
 
     importar: async () => {
-      const resultado = await importarDatos(repositorio, proveedorSync);
+      const resultado = await importarDatos(repositorio, proveedorSync, almacen);
       if (resultado) {
         await recargar();
         setVersionLocal((v) => v + 1);
@@ -117,8 +144,10 @@ export function DatosProvider({ repositorio, proveedorSync, children }: Props) {
 
     versionLocal,
 
+    almacen,
+
     sincronizar: async (proveedor) => {
-      const resultado = await sincronizarDatos(repositorio, proveedor);
+      const resultado = await sincronizarDatos(repositorio, proveedor, almacen);
       await recargar(); // sin subir `versionLocal`: lo que llega de la nube no dispara otra sincronización
       return resultado;
     },

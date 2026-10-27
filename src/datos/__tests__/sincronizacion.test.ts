@@ -1,4 +1,6 @@
-import type { Movimiento } from '@/dominio/tipos';
+import type { ImagenMovimiento, Movimiento } from '@/dominio/tipos';
+
+import type { AlmacenImagenes } from '@/datos/almacenImagenes';
 
 import { crearRepositorioMemoria } from '@/pruebas/repositorioMemoria';
 import {
@@ -10,6 +12,7 @@ import {
 } from '../sincronizacion/formatoArchivo';
 import { planificarFusion } from '../sincronizacion/fusion';
 import type { ProveedorSync } from '../sincronizacion/proveedor';
+import { escribirJsonConImagenes } from '../sincronizacion/serializadorArchivo';
 import { exportarDatos, importarDatos } from '../sincronizacion/servicio';
 
 function mov(id: string, parcial: Partial<Movimiento> = {}): Movimiento {
@@ -106,6 +109,64 @@ describe('formato del archivo', () => {
   });
 });
 
+describe('imágenes en el archivo', () => {
+  const BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const imagen = (id: string, parcial: Partial<ImagenMovimiento> = {}): ImagenMovimiento => ({
+    id,
+    ancho: 800,
+    alto: 600,
+    orden: 0,
+    base64: BASE64,
+    ...parcial,
+  });
+
+  it('conserva las fotos con su Base64 y ordena según el arreglo', () => {
+    const original = [mov('a', { imagenes: [imagen('dos', { orden: 1 }), imagen('uno', { orden: 0 })] })];
+    const { archivo } = analizarArchivo(serializarArchivo(crearArchivo(original)));
+
+    expect(archivo.movimientos[0].imagenes).toEqual([
+      imagen('dos', { orden: 0 }),
+      imagen('uno', { orden: 1 }),
+    ]);
+  });
+
+  it('descarta solo las imágenes inválidas y conserva el movimiento', () => {
+    const texto = JSON.stringify({
+      version: 2,
+      movimientos: [
+        {
+          ...mov('a'),
+          imagenes: [
+            imagen('ok'),
+            imagen('id-malo', { id: '../fuera' }),
+            imagen('ancho-malo', { ancho: 0 }),
+            imagen('alto-malo', { alto: 1.5 }),
+            imagen('sin-datos', { base64: '' }),
+            imagen('base64-malo', { base64: 'no es base64' }),
+            'basura',
+          ],
+        },
+      ],
+    });
+
+    const { archivo, descartados } = analizarArchivo(texto);
+    expect(descartados).toBe(0);
+    expect(archivo.movimientos[0].imagenes).toEqual([imagen('ok', { orden: 0 })]);
+  });
+
+  it('acepta como máximo 5 fotos por movimiento', () => {
+    const seis = Array.from({ length: 6 }, (_, i) => imagen(`img${i}`));
+    const texto = JSON.stringify({ version: 2, movimientos: [{ ...mov('a'), imagenes: seis }] });
+
+    expect(analizarArchivo(texto).archivo.movimientos[0].imagenes).toHaveLength(5);
+  });
+
+  it('un archivo sin el campo imagenes no toca las fotos locales', () => {
+    const { archivo } = analizarArchivo(JSON.stringify({ version: 1, movimientos: [mov('a')] }));
+    expect(archivo.movimientos[0]).not.toHaveProperty('imagenes');
+  });
+});
+
 describe('planificarFusion', () => {
   it('agrega lo que no existe', () => {
     const plan = planificarFusion([mov('a')], [mov('b')]);
@@ -166,6 +227,31 @@ describe('planificarFusion', () => {
 });
 
 describe('servicio de exportar e importar', () => {
+  const IMAGEN: ImagenMovimiento = { id: 'img1', ancho: 10, alto: 20, orden: 0 };
+  const BASE64 = 'QUJD';
+
+  function almacenFalso(base64: string | null) {
+    const importadas: { movimientoId: string; imagenes: readonly ImagenMovimiento[] }[] = [];
+    const conservadas: { movimientoId: string; imagenes: readonly ImagenMovimiento[] }[] = [];
+    const almacen: AlmacenImagenes = {
+      elegirDeGaleria: async () => [],
+      tomarFoto: async () => null,
+      guardar: async () => [],
+      conservar: (movimientoId, imagenes) => {
+        conservadas.push({ movimientoId, imagenes });
+      },
+      importar: async (movimientoId, imagenes) => {
+        importadas.push({ movimientoId, imagenes });
+      },
+      uriDe: () => '',
+      leerBase64: async () => base64,
+      borrarTemporal: () => {},
+      eliminarDeMovimiento: () => {},
+      limpiarTodo: () => {},
+    };
+    return { almacen, importadas, conservadas };
+  }
+
   function proveedorEnMemoria(): ProveedorSync & { enviado: string | null } {
     const estado: { enviado: string | null } = { enviado: null };
     return {
@@ -179,6 +265,39 @@ describe('servicio de exportar e importar', () => {
       },
       async descargar() {
         return estado.enviado ? analizarArchivo(estado.enviado) : null;
+      },
+    };
+  }
+
+  /** Proveedor que exporta en streaming (como hará el de archivo JSON). */
+  function proveedorStreaming() {
+    const trozos: string[] = [];
+    let subidoCompleto = false;
+    return {
+      proveedor: {
+        id: 'stream',
+        nombre: 'Stream',
+        async subir() {
+          subidoCompleto = true;
+        },
+        async subirConImagenes(movimientos, almacen) {
+          await escribirJsonConImagenes(
+            movimientos,
+            (id, imagen) => almacen.leerBase64(id, imagen),
+            (trozo) => {
+              trozos.push(trozo);
+            },
+          );
+        },
+        async descargar() {
+          return null;
+        },
+      } satisfies ProveedorSync,
+      get texto() {
+        return trozos.join('');
+      },
+      get subidoCompleto() {
+        return subidoCompleto;
       },
     };
   }
@@ -204,6 +323,71 @@ describe('servicio de exportar e importar', () => {
       descargar: async () => null,
     };
     expect(await importarDatos(crearRepositorioMemoria(), cancelado)).toBeNull();
+  });
+
+  it('exporta el Base64 de las fotos y no incluye las de los borrados', async () => {
+    const proveedor = proveedorEnMemoria();
+    const conFotos = mov('a', { imagenes: [IMAGEN] });
+    const borrado = mov('b', { eliminado: true, imagenes: [IMAGEN] });
+
+    await exportarDatos(crearRepositorioMemoria([conFotos, borrado]), proveedor, almacenFalso(BASE64).almacen);
+
+    const { archivo } = analizarArchivo(proveedor.enviado ?? '');
+    expect(archivo.movimientos.find((m) => m.id === 'a')?.imagenes).toEqual([{ ...IMAGEN, base64: BASE64 }]);
+    expect(archivo.movimientos.find((m) => m.id === 'b')).not.toHaveProperty('imagenes');
+  });
+
+  it('si no se puede leer ninguna foto, el movimiento viaja sin imagenes (no toca las locales al importar)', async () => {
+    const proveedor = proveedorEnMemoria();
+    await exportarDatos(
+      crearRepositorioMemoria([mov('a', { imagenes: [IMAGEN] })]),
+      proveedor,
+      almacenFalso(null).almacen,
+    );
+
+    expect(analizarArchivo(proveedor.enviado ?? '').archivo.movimientos[0]).not.toHaveProperty('imagenes');
+  });
+
+  it('usa el streaming cuando el proveedor lo soporta y hay almacén', async () => {
+    const streaming = proveedorStreaming();
+
+    await exportarDatos(
+      crearRepositorioMemoria([mov('a', { imagenes: [IMAGEN] })]),
+      streaming.proveedor,
+      almacenFalso(BASE64).almacen,
+    );
+
+    expect(streaming.subidoCompleto).toBe(false);
+    expect(analizarArchivo(streaming.texto).archivo.movimientos[0].imagenes).toEqual([{ ...IMAGEN, base64: BASE64 }]);
+  });
+
+  it('cae a subir(archivo) cuando el proveedor no soporta streaming', async () => {
+    const proveedor = proveedorEnMemoria();
+
+    await exportarDatos(
+      crearRepositorioMemoria([mov('a', { imagenes: [IMAGEN] })]),
+      proveedor,
+      almacenFalso(BASE64).almacen,
+    );
+
+    expect(proveedor.enviado).not.toBeNull();
+  });
+
+  it('al importar escribe las fotos en disco antes de fusionar y limpia las sobrantes', async () => {
+    const nube = proveedorEnMemoria();
+    await exportarDatos(
+      crearRepositorioMemoria([mov('a', { imagenes: [IMAGEN] })]),
+      nube,
+      almacenFalso(BASE64).almacen,
+    );
+
+    const destino = crearRepositorioMemoria();
+    const { almacen, importadas, conservadas } = almacenFalso(null);
+    const resultado = await importarDatos(destino, nube, almacen);
+
+    expect(resultado).toMatchObject({ nuevos: 1, descartados: 0 });
+    expect(importadas).toEqual([{ movimientoId: 'a', imagenes: [{ ...IMAGEN, base64: BASE64 }] }]);
+    expect(conservadas).toEqual([{ movimientoId: 'a', imagenes: [{ ...IMAGEN, base64: BASE64 }] }]);
   });
 });
 

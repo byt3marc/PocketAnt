@@ -1,17 +1,20 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 
 import { AjustesProvider } from '@/ajustes/AjustesProvider';
 import { guardarAjustes } from '@/ajustes/almacen';
 import { formatearFechaCorta, hoy, sumarDias } from '@/dominio/fechas';
+import type { ImagenBorrador } from '@/dominio/imagenes';
 import type { PuntoDia } from '@/dominio/series';
 import type { Movimiento } from '@/dominio/tipos';
 import { crearI18n } from '@/i18n/traducir';
 
 import { BloqueDia } from '../BloqueDia';
+import { ImagenesMovimiento } from '../ImagenesMovimiento';
 import { ItemMovimiento } from '../ItemMovimiento';
 import { SelectorFecha } from '../SelectorFecha';
 import { SelectorFuente } from '../SelectorFuente';
+import { SelectorOrigenFoto } from '../SelectorOrigenFoto';
 import { SelectorSegmentado } from '../SelectorSegmentado';
 import { TarjetaSaldo } from '../TarjetaSaldo';
 import { Texto } from '../Texto';
@@ -96,6 +99,54 @@ describe('ItemMovimiento', () => {
     expect(screen.getByText('+$900.00')).toBeTruthy();
     expect(screen.getByText('Mensual · cada mes')).toBeTruthy();
     expect(screen.getByText('Ayer')).toBeTruthy();
+  });
+
+  it('indica cuántas fotos tiene el movimiento', async () => {
+    const conFotos = movimiento({
+      imagenes: [
+        { id: 'img1', ancho: 800, alto: 600, orden: 0 },
+        { id: 'img2', ancho: 800, alto: 600, orden: 1 },
+      ],
+    });
+    await render(conAjustes(<ItemMovimiento movimiento={conFotos} hoy="2026-10-12" onPress={jest.fn()} />));
+
+    expect(screen.getByLabelText(/con 2 fotos/)).toBeTruthy();
+  });
+});
+
+describe('ImagenesMovimiento', () => {
+  const foto = (id: string): ImagenBorrador => ({
+    id,
+    uri: `file:///cache/${id}.jpg`,
+    ancho: 800,
+    alto: 600,
+    nueva: false,
+  });
+
+  it('muestra la cuenta, quita fotos y deja de ofrecer agregar al llegar al máximo', async () => {
+    const quitar = jest.fn();
+    const { rerender } = await render(
+      conAjustes(
+        <ImagenesMovimiento imagenes={[foto('a'), foto('b')]} onAgregar={jest.fn()} onQuitar={quitar} color="gasto" />,
+      ),
+    );
+
+    expect(screen.getByText('2 de 5')).toBeTruthy();
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Quitar foto' })[0]);
+    expect(quitar).toHaveBeenCalledWith('a');
+
+    await rerender(
+      conAjustes(
+        <ImagenesMovimiento
+          imagenes={[foto('a'), foto('b'), foto('c'), foto('d'), foto('e')]}
+          onAgregar={jest.fn()}
+          onQuitar={jest.fn()}
+          color="gasto"
+        />,
+      ),
+    );
+    expect(screen.queryByRole('button', { name: 'Agregar foto' })).toBeNull();
+    expect(screen.getByText('Llegaste al máximo de 5 fotos.')).toBeTruthy();
   });
 });
 
@@ -452,5 +503,49 @@ describe('Fuente del texto', () => {
     );
     await fireEvent.press(screen.getByRole('radio', { name: 'Redondeada' }));
     expect(screen.getByText('Fuerte')).toHaveStyle({ fontFamily: 'Nunito_700Bold' });
+  });
+});
+
+describe('SelectorOrigenFoto', () => {
+  it('muestra las tres acciones en fila y avisa de la elegida', async () => {
+    const elegir = jest.fn();
+    const cerrar = jest.fn();
+    await render(
+      conAjustes(<SelectorOrigenFoto visible color="gasto" onElegir={elegir} onCerrar={cerrar} />),
+    );
+
+    expect(screen.getByTestId('origen-foto-fila')).toHaveStyle({ flexDirection: 'row' });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Galería' }));
+    expect(elegir).toHaveBeenCalledWith('galeria');
+    await fireEvent.press(screen.getByRole('button', { name: 'Cámara' }));
+    expect(elegir).toHaveBeenCalledWith('camara');
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(cerrar).toHaveBeenCalledTimes(1);
+  });
+
+  it('cierra al tocar fuera y con «atrás»', async () => {
+    const cerrar = jest.fn();
+    await render(
+      conAjustes(<SelectorOrigenFoto visible color="gasto" onElegir={jest.fn()} onCerrar={cerrar} />),
+    );
+
+    // La tarjeta usa `accessibilityViewIsModal`, así que RNTL trata el velo como oculto.
+    await fireEvent.press(screen.getByTestId('origen-foto-fondo', { includeHiddenElements: true }));
+    expect(cerrar).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      screen.getByTestId('origen-foto').props.onRequestClose();
+    });
+    expect(cerrar).toHaveBeenCalledTimes(2);
+  });
+
+  it('oculto no muestra ninguna acción', async () => {
+    await render(
+      conAjustes(
+        <SelectorOrigenFoto visible={false} color="gasto" onElegir={jest.fn()} onCerrar={jest.fn()} />,
+      ),
+    );
+    expect(screen.queryByRole('button', { name: 'Galería' })).toBeNull();
   });
 });

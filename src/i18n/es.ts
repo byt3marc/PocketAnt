@@ -47,12 +47,16 @@ export const es = {
   'error.archivo.version_nueva':
     'El archivo fue creado con una versión más nueva de la app. Actualiza la app e inténtalo de nuevo.',
   'error.archivo.vacio': 'El archivo está vacío.',
+  'error.archivo.demasiado_grande': 'El archivo es demasiado grande para importarlo.',
   'error.monto_requerido': 'Ingresa un monto mayor a 0.',
   'error.monto_grande': 'El monto es demasiado grande.',
   'error.motivo_vacio': 'Escribe el motivo del movimiento.',
   'error.motivo_largo': 'Máximo {max} caracteres.',
   'error.fecha_invalida': 'Elige una fecha válida.',
   'error.frecuencia': 'Entre 1 y {max}.',
+  'error.imagen_procesar': 'No se pudo procesar la imagen.',
+  'error.imagen_permiso': 'Necesitas dar permiso para usar la cámara o la galería.',
+  'error.imagen_guardar': 'No se pudo guardar la imagen.',
 
   // — Navegación —
   'nav.estadisticas': 'Gráficas e Historial',
@@ -80,6 +84,8 @@ export const es = {
   'tooltip.gastos': '▼ Gastos',
   'tooltip.sin_movimientos': 'Sin movimientos',
   'item.accesible': '{tipo}: {motivo}, {monto}, {fecha}{recurrencia}. Toca para editar.',
+  'item.fotos_uno': 'con {n} foto',
+  'item.fotos_otros': 'con {n} fotos',
 
   // — Recurrencia —
   'recurrencia.mensual': 'Mensual',
@@ -148,6 +154,17 @@ export const es = {
   'mov.error_eliminar': 'No se pudo eliminar',
   'mov.inexistente_titulo': 'Este movimiento ya no existe',
   'mov.inexistente_desc': 'Pudo haberse eliminado o reemplazado por una importación.',
+  'mov.imagenes': 'Fotos',
+  'mov.imagenes_cuenta': '{n} de {max}',
+  'mov.imagenes_desc': 'Puedes adjuntar fotos para recordar el detalle.',
+  'mov.imagen_agregar': 'Agregar foto',
+  'mov.imagen_quitar': 'Quitar foto',
+  'mov.imagen_accesible': 'Foto {n} de {total}',
+  'mov.imagen_limite': 'Llegaste al máximo de {max} fotos.',
+  'mov.imagen_fuente_titulo': 'Agregar foto',
+  'mov.imagen_fuente_galeria': 'Galería',
+  'mov.imagen_fuente_camara': 'Cámara',
+  'mov.imagen_fuente_desc': 'Elige de dónde tomarla.',
 
   // — Ajustes —
   'ajustes.apariencia': 'Apariencia',

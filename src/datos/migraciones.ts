@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-export const VERSION_ESQUEMA = 1;
+export const VERSION_ESQUEMA = 2;
 
 /** Crea o actualiza el esquema usando `PRAGMA user_version`. Para cambios futuros, agregar un bloque `if`. */
 export async function migrarBaseDeDatos(db: SQLiteDatabase): Promise<void> {
@@ -24,6 +24,19 @@ export async function migrarBaseDeDatos(db: SQLiteDatabase): Promise<void> {
         eliminado      INTEGER NOT NULL DEFAULT 0
       );
       CREATE INDEX IF NOT EXISTS idx_movimientos_fecha ON movimientos (eliminado, fecha);
+    `);
+  }
+
+  if (actual < 2) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS imagenes (
+        id            TEXT    PRIMARY KEY NOT NULL,
+        movimiento_id TEXT    NOT NULL,
+        ancho         INTEGER NOT NULL CHECK (ancho > 0),
+        alto          INTEGER NOT NULL CHECK (alto > 0),
+        orden         INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_imagenes_movimiento ON imagenes (movimiento_id, orden);
     `);
   }
 

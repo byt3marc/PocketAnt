@@ -1,14 +1,25 @@
 import { esClaveValida } from '@/dominio/fechas';
+import { MAX_BYTES_IMAGEN, MAX_IMAGENES } from '@/dominio/imagenes';
 import { MAX_FRECUENCIA, MAX_MONTO } from '@/dominio/movimiento';
-import type { Movimiento, PeriodoRecurrencia, TipoMovimiento } from '@/dominio/tipos';
+import type {
+  ImagenMovimiento,
+  Movimiento,
+  PeriodoRecurrencia,
+  TipoMovimiento,
+} from '@/dominio/tipos';
 import { ErrorTraducible } from '@/i18n/errores';
 import type { ClaveTexto } from '@/i18n/traducir';
 
 /** Versión del formato del archivo. Subirla cuando cambie la estructura. */
-export const VERSION_ARCHIVO = 1;
+export const VERSION_ARCHIVO = 2;
 
 const LIMITE_MOTIVO_IMPORTADO = 200;
 const FECHA_MUY_ANTIGUA = '1970-01-01T00:00:00.000Z';
+/** Un Base64 válido de `MAX_BYTES_IMAGEN` no puede ser más largo que esto. */
+const MAX_BASE64_IMAGEN = Math.ceil((MAX_BYTES_IMAGEN * 4) / 3) + 8;
+const MAX_LADO_IMAGEN_ARCHIVO = 10_000;
+/** Tope de un archivo importable: `JSON.parse` necesita el texto completo, así que se rechaza antes de leerlo. */
+export const MAX_BYTES_ARCHIVO = 96 * 1024 * 1024;
 
 /** Contenido de `datos.json`. Es el mismo que se subirá a Google Drive en la V2. */
 export interface ArchivoDatos {
@@ -46,6 +57,35 @@ function normalizarFechaHora(valor: unknown): string {
   return Number.isNaN(ms) ? FECHA_MUY_ANTIGUA : new Date(ms).toISOString();
 }
 
+/** Una imagen del archivo: metadatos más el JPEG en Base64. Sin Base64 válido se descarta. */
+function normalizarImagen(crudo: unknown): ImagenMovimiento | null {
+  if (!esObjeto(crudo)) return null;
+
+  const { id, ancho, alto, base64 } = crudo;
+  if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(id)) return null;
+  if (typeof ancho !== 'number' || !Number.isInteger(ancho)) return null;
+  if (ancho < 1 || ancho > MAX_LADO_IMAGEN_ARCHIVO) return null;
+  if (typeof alto !== 'number' || !Number.isInteger(alto)) return null;
+  if (alto < 1 || alto > MAX_LADO_IMAGEN_ARCHIVO) return null;
+  if (typeof base64 !== 'string' || base64.length === 0 || base64.length > MAX_BASE64_IMAGEN) return null;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) return null;
+
+  return { id, ancho, alto, orden: 0, base64 };
+}
+
+/** Devuelve `undefined` si el movimiento no declara imágenes (así no se tocan las locales al fusionar). */
+function normalizarImagenes(crudo: unknown): ImagenMovimiento[] | undefined {
+  if (!Array.isArray(crudo)) return undefined;
+
+  const imagenes: ImagenMovimiento[] = [];
+  for (const item of crudo.slice(0, MAX_IMAGENES)) {
+    const imagen = normalizarImagen(item);
+    // El orden lo decide el arreglo; no se confía en el que traiga el archivo.
+    if (imagen) imagenes.push({ ...imagen, orden: imagenes.length });
+  }
+  return imagenes;
+}
+
 /**
  * Valida y limpia un movimiento que viene de un archivo (que puede venir de otra app
  * o estar editado a mano). Devuelve `null` si no se puede aprovechar.
@@ -79,6 +119,8 @@ export function normalizarMovimiento(crudo: unknown): Movimiento | null {
         ? 1
         : null;
 
+  const imagenes = normalizarImagenes(crudo.imagenes);
+
   return {
     id,
     tipo: tipo as TipoMovimiento,
@@ -90,6 +132,7 @@ export function normalizarMovimiento(crudo: unknown): Movimiento | null {
     frecuencia,
     actualizadoEn: normalizarFechaHora(crudo.actualizadoEn),
     eliminado: crudo.eliminado === true,
+    ...(imagenes === undefined ? {} : { imagenes }),
   };
 }
 

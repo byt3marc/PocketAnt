@@ -9,6 +9,7 @@ import { BloqueDia } from '../BloqueDia';
 import { ItemMovimiento } from '../ItemMovimiento';
 import { SelectorFecha } from '../SelectorFecha';
 import { SelectorFuente } from '../SelectorFuente';
+import { SelectorOrigenFoto } from '../SelectorOrigenFoto';
 import { TarjetaSaldo } from '../TarjetaSaldo';
 
 // Mismo montaje que `componentes.test.tsx`, pero con la app en inglés.
@@ -86,5 +87,15 @@ describe('app en inglés', () => {
     expect(screen.getByRole('radio', { name: 'System' })).toBeSelected();
     expect(screen.getByRole('radio', { name: 'Rounded' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Classic' })).toBeTruthy();
+  });
+
+  it('el selector de origen de foto está en inglés', async () => {
+    await render(
+      conAjustes(<SelectorOrigenFoto visible color="gasto" onElegir={jest.fn()} onCerrar={jest.fn()} />),
+    );
+    expect(screen.getByText('Add photo')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Gallery' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Camera' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
   });
 });

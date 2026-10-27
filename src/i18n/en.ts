@@ -45,12 +45,16 @@ export const en: Record<ClaveTexto, string> = {
   'error.archivo.version_nueva':
     'The file was created with a newer version of the app. Update the app and try again.',
   'error.archivo.vacio': 'The file is empty.',
+  'error.archivo.demasiado_grande': 'The file is too large to import.',
   'error.monto_requerido': 'Enter an amount greater than 0.',
   'error.monto_grande': 'The amount is too large.',
   'error.motivo_vacio': 'Enter a description for the entry.',
   'error.motivo_largo': 'Maximum {max} characters.',
   'error.fecha_invalida': 'Pick a valid date.',
   'error.frecuencia': 'Between 1 and {max}.',
+  'error.imagen_procesar': 'The image could not be processed.',
+  'error.imagen_permiso': 'You need to allow camera or gallery access.',
+  'error.imagen_guardar': 'The image could not be saved.',
 
   // — Navigation —
   'nav.estadisticas': 'Charts & History',
@@ -78,6 +82,8 @@ export const en: Record<ClaveTexto, string> = {
   'tooltip.gastos': '▼ Expenses',
   'tooltip.sin_movimientos': 'No entries',
   'item.accesible': '{tipo}: {motivo}, {monto}, {fecha}{recurrencia}. Tap to edit.',
+  'item.fotos_uno': 'with {n} photo',
+  'item.fotos_otros': 'with {n} photos',
 
   // — Recurrence —
   'recurrencia.mensual': 'Monthly',
@@ -146,6 +152,17 @@ export const en: Record<ClaveTexto, string> = {
   'mov.error_eliminar': 'Could not delete',
   'mov.inexistente_titulo': 'This entry no longer exists',
   'mov.inexistente_desc': 'It may have been deleted or replaced by an import.',
+  'mov.imagenes': 'Photos',
+  'mov.imagenes_cuenta': '{n} of {max}',
+  'mov.imagenes_desc': 'You can attach photos to remember the details.',
+  'mov.imagen_agregar': 'Add photo',
+  'mov.imagen_quitar': 'Remove photo',
+  'mov.imagen_accesible': 'Photo {n} of {total}',
+  'mov.imagen_limite': 'You reached the {max}-photo limit.',
+  'mov.imagen_fuente_titulo': 'Add photo',
+  'mov.imagen_fuente_galeria': 'Gallery',
+  'mov.imagen_fuente_camara': 'Camera',
+  'mov.imagen_fuente_desc': 'Choose where to take it from.',
 
   // — Settings —
   'ajustes.apariencia': 'Appearance',

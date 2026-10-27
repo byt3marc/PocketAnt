@@ -40,6 +40,7 @@ Todo lo que pide Play Console para publicar, listo para copiar. Revisado el 2026
 > Pocketant es la forma más rápida de anotar tus ingresos y gastos, sobre todo los «gastos hormiga»: el café, el snack, el taxi… esos pequeños gastos que, sumados, se llevan buena parte del mes.
 >
 > • Registra un gasto o un ingreso en segundos, con su motivo y su fecha.
+> • Adjunta hasta 5 fotos a un movimiento (un recibo, un comprobante) y tenlas siempre a mano.
 > • Mira de un vistazo cómo vas hoy y los últimos 7 días, con gráficas claras de ingresos y gastos.
 > • Gráficas e historial por día, semana y mes.
 > • Marca los gastos que se repiten (suscripciones, gimnasio, renta) y recibe un aviso antes de cada cobro.
@@ -55,6 +56,7 @@ Todo lo que pide Play Console para publicar, listo para copiar. Revisado el 2026
 > Pocketant is the fastest way to log your income and expenses, especially the small ones: the coffee, the snack, the cab… those little expenses that add up to a big part of the month.
 >
 > • Log an expense or income in seconds, with its reason and date.
+> • Attach up to 5 photos to an entry (a receipt, a proof of payment) and keep them at hand.
 > • See at a glance how today and the last 7 days are going, with clear income and expense charts.
 > • Charts and history by day, week and month.
 > • Mark recurring expenses (subscriptions, gym, rent) and get a reminder before each charge.
@@ -94,6 +96,7 @@ Todo lo que pide Play Console para publicar, listo para copiar. Revisado el 2026
 - ¿Se pueden pedir borrar? **Sí**, escribiendo al correo de contacto.
 - Lo que **no** cuenta como recogida, porque no sale del teléfono:
   - los movimientos y los ajustes,
+  - las fotos adjuntas a un movimiento (solo salen si el usuario exporta o sincroniza),
   - las notificaciones locales,
   - el análisis y el informe de la IA local.
 - La descarga del modelo desde Hugging Face no envía datos del usuario. Ese servicio ve la IP, como en cualquier descarga.

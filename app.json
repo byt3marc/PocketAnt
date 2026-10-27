@@ -41,6 +41,14 @@
       ],
       "expo-sqlite",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pocketant usa tus fotos para adjuntarlas a un ingreso o gasto.",
+          "cameraPermission": "Pocketant usa la cámara para tomar la foto de un ingreso o gasto.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",

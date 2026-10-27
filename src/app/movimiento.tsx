@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -16,14 +16,17 @@ import { useDialogo } from '@/componentes/DialogoProvider';
 import { Entrada } from '@/componentes/Entrada';
 import { EstadoVacio } from '@/componentes/EstadoVacio';
 import { FilaInterruptor } from '@/componentes/FilaInterruptor';
+import { ImagenesMovimiento } from '@/componentes/ImagenesMovimiento';
 import { Revelar } from '@/componentes/Revelar';
 import { SelectorFecha } from '@/componentes/SelectorFecha';
+import { SelectorOrigenFoto, type OrigenFoto } from '@/componentes/SelectorOrigenFoto';
 import { SelectorSegmentado, type OpcionSegmento } from '@/componentes/SelectorSegmentado';
 import { Tarjeta } from '@/componentes/Tarjeta';
 import { Texto } from '@/componentes/Texto';
 import { useDatos } from '@/datos/DatosProvider';
 import { hoy } from '@/dominio/fechas';
 import { limpiarEntradaMonto } from '@/dominio/formato';
+import { MAX_IMAGENES, type ImagenBorrador } from '@/dominio/imagenes';
 import {
   MAX_FRECUENCIA,
   MAX_MOTIVO,
@@ -45,7 +48,7 @@ function Formulario({ existente, tipoInicial }: { existente?: Movimiento; tipoIn
   const relleno = useRelleno(true);
   const { ajustes, colores, moneda, i18n } = useAjustes();
   const { alerta } = useDialogo();
-  const { guardarMovimiento, eliminarMovimiento } = useDatos();
+  const { guardarMovimiento, eliminarMovimiento, almacen } = useDatos();
   const { ofrecerAvisosDeCobros } = useNotificaciones();
 
   const tipo = existente?.tipo ?? tipoInicial;
@@ -59,6 +62,36 @@ function Formulario({ existente, tipoInicial }: { existente?: Movimiento; tipoIn
   const [frecuencia, setFrecuencia] = useState(existente?.frecuencia ?? 1);
   const [intentado, setIntentado] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const [selectorAbierto, setSelectorAbierto] = useState(false);
+  const [imagenes, setImagenes] = useState<ImagenBorrador[]>(() => {
+    const inicial = existente;
+    if (!inicial?.imagenes) return [];
+    return inicial.imagenes.map((imagen) => ({
+      id: imagen.id,
+      uri: almacen.uriDe(inicial.id, imagen),
+      ancho: imagen.ancho,
+      alto: imagen.alto,
+      nueva: false,
+    }));
+  });
+
+  // Al salir sin guardar se borran las fotos recién elegidas que aún viven en la caché.
+  const imagenesRef = useRef(imagenes);
+  const almacenRef = useRef(almacen);
+  const guardadoRef = useRef(false);
+  useEffect(() => {
+    imagenesRef.current = imagenes;
+    almacenRef.current = almacen;
+  }, [imagenes, almacen]);
+  useEffect(
+    () => () => {
+      if (guardadoRef.current) return;
+      for (const imagen of imagenesRef.current) {
+        if (imagen.nueva) almacenRef.current.borrarTemporal(imagen.uri);
+      }
+    },
+    [],
+  );
 
   const periodos: readonly OpcionSegmento<PeriodoRecurrencia>[] = [
     { valor: 'mensual', etiqueta: i18n.t('recurrencia.mensual') },
@@ -82,12 +115,39 @@ function Formulario({ existente, tipoInicial }: { existente?: Movimiento; tipoIn
         : 'mov.titulo_quitar',
   );
 
+  const quitarImagen = (id: string) => {
+    const imagen = imagenes.find((actual) => actual.id === id);
+    if (imagen?.nueva) almacen.borrarTemporal(imagen.uri);
+    setImagenes((actual) => actual.filter((otra) => otra.id !== id));
+  };
+
+  const agregarImagenes = async (origen: OrigenFoto) => {
+    setOcupado(true);
+    try {
+      const nuevas =
+        origen === 'galeria'
+          ? await almacen.elegirDeGaleria(MAX_IMAGENES - imagenes.length)
+          : [await almacen.tomarFoto()].filter((imagen): imagen is ImagenBorrador => imagen !== null);
+      if (nuevas.length > 0) setImagenes((actual) => [...actual, ...nuevas].slice(0, MAX_IMAGENES));
+    } catch (fallo) {
+      alerta(i18n.t('mov.imagenes'), mensajeDeError(fallo, i18n));
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const elegirFuenteDeImagen = () => {
+    if (imagenes.length >= MAX_IMAGENES) return;
+    setSelectorAbierto(true);
+  };
+
   const guardar = async () => {
     setIntentado(true);
     if (!entrada) return;
     setOcupado(true);
     try {
-      await guardarMovimiento(entrada, existente?.id);
+      await guardarMovimiento(entrada, existente?.id, imagenes);
+      guardadoRef.current = true;
       router.back();
       // Un gasto recurrente es el momento en que un aviso antes del cobro tiene sentido: ahí se ofrece el permiso.
       if (entrada.recurrente && entrada.tipo === 'gasto') ofrecerAvisosDeCobros();
@@ -220,7 +280,18 @@ function Formulario({ existente, tipoInicial }: { existente?: Movimiento; tipoIn
           </Tarjeta>
         </Entrada>
 
-        <Entrada indice={3} style={estilos.acciones}>
+        <Entrada indice={3} deslizar>
+          <Tarjeta deslizar style={estilos.grupo}>
+            <ImagenesMovimiento
+              imagenes={imagenes}
+              onAgregar={elegirFuenteDeImagen}
+              onQuitar={quitarImagen}
+              color={tipo === 'ingreso' ? 'ingreso' : 'gasto'}
+            />
+          </Tarjeta>
+        </Entrada>
+
+        <Entrada indice={4} style={estilos.acciones}>
           <Boton
             titulo={i18n.t(
               existente ? 'mov.guardar_cambios' : tipo === 'ingreso' ? 'mov.agregar_ingreso' : 'mov.registrar_gasto',
@@ -241,6 +312,15 @@ function Formulario({ existente, tipoInicial }: { existente?: Movimiento; tipoIn
           ) : null}
         </Entrada>
       </ScrollView>
+      <SelectorOrigenFoto
+        visible={selectorAbierto}
+        color={tipo === 'ingreso' ? 'ingreso' : 'gasto'}
+        onCerrar={() => setSelectorAbierto(false)}
+        onElegir={(origen) => {
+          setSelectorAbierto(false);
+          void agregarImagenes(origen);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
