@@ -90,7 +90,8 @@
           }
         }
       ],
-      "./plugins/reglas-respaldo"
+      "./plugins/reglas-respaldo",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
