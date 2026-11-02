@@ -8,6 +8,7 @@ import type { ImagenBorrador } from '@/dominio/imagenes';
 import type { PuntoDia } from '@/dominio/series';
 import type { Movimiento } from '@/dominio/tipos';
 import { crearI18n } from '@/i18n/traducir';
+import { paletaClara } from '@/tema/paleta';
 
 import { BloqueDia } from '../BloqueDia';
 import { ImagenesMovimiento } from '../ImagenesMovimiento';
@@ -132,6 +133,8 @@ describe('ImagenesMovimiento', () => {
     );
 
     expect(screen.getByText('2 de 5')).toBeTruthy();
+    // El borde usa el color de la paleta resuelto, no la clave (`gasto`), que Reanimated no puede procesar.
+    expect(screen.getByRole('button', { name: 'Agregar foto' })).toHaveStyle({ borderColor: paletaClara.gasto });
     await fireEvent.press(screen.getAllByRole('button', { name: 'Quitar foto' })[0]);
     expect(quitar).toHaveBeenCalledWith('a');
 
@@ -515,6 +518,8 @@ describe('SelectorOrigenFoto', () => {
     );
 
     expect(screen.getByTestId('origen-foto-fila')).toHaveStyle({ flexDirection: 'row' });
+    // El borde usa el color de la paleta resuelto, no la clave (`gasto`), que Reanimated no puede procesar.
+    expect(screen.getByRole('button', { name: 'Galería' })).toHaveStyle({ borderColor: paletaClara.gasto });
 
     await fireEvent.press(screen.getByRole('button', { name: 'Galería' }));
     expect(elegir).toHaveBeenCalledWith('galeria');

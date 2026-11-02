@@ -28,13 +28,14 @@ interface PropsOpcion {
 
 function Opcion({ icono, etiqueta, color, acento = false, onPress }: PropsOpcion) {
   const estilos = useEstilos(crearEstilos);
+  const { colores } = useAjustes();
   return (
     <PresionableEscala
       accessibilityRole="button"
       accessibilityLabel={etiqueta}
       onPress={onPress}
       android_ripple={ONDA}
-      style={[estilos.opcion, acento && { borderColor: color }]}
+      style={[estilos.opcion, acento && { borderColor: colores[color] }]}
     >
       <Icono nombre={icono} tamano={26} color={acento ? color : 'textoSecundario'} />
       <Texto

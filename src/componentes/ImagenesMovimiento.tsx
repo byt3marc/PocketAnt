@@ -19,7 +19,7 @@ interface Props {
 /** Fotos adjuntas al movimiento: miniaturas, botón para quitar y botón para agregar (hasta `MAX_IMAGENES`). */
 export function ImagenesMovimiento({ imagenes, onAgregar, onQuitar, color }: Props) {
   const estilos = useEstilos(crearEstilos);
-  const { i18n } = useAjustes();
+  const { colores, i18n } = useAjustes();
   const lleno = imagenes.length >= MAX_IMAGENES;
 
   return (
@@ -64,7 +64,7 @@ export function ImagenesMovimiento({ imagenes, onAgregar, onQuitar, color }: Pro
             android_ripple={ONDA}
             style={({ pressed }) => [
               estilos.agregar,
-              { borderColor: color },
+              { borderColor: colores[color] },
               pressed && estilos.pulsado,
             ]}
           >
