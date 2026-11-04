@@ -1,4 +1,4 @@
-// Genera la página web de la política de privacidad (tienda/politica-privacidad.html) desde src/legal/privacidad.json,
+ // Genera la página web de la política de privacidad (tienda/politica-privacidad.html) desde src/legal/privacidad.json,
 // el mismo texto que muestra la app. Google Play pide su URL pública en Play Console: esta página se sube tal cual a
 // cualquier alojamiento (no necesita nada externo).
 //
