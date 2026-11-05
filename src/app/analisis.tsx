@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useEffect, useEffectEvent } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -6,6 +7,7 @@ import { DESLIZAR } from '@/animacion/constantes';
 
 import { AnalisisReglas } from '@/componentes/AnalisisReglas';
 import { BloqueIA } from '@/componentes/BloqueIA';
+import { Boton } from '@/componentes/Boton';
 import { Entrada } from '@/componentes/Entrada';
 import { EstadoVacio } from '@/componentes/EstadoVacio';
 import { Tarjeta } from '@/componentes/Tarjeta';
@@ -23,6 +25,8 @@ export default function Analisis() {
   const { i18n } = useAjustes();
   const { refrescar, liberar } = useIA();
 
+  const router = useRouter();
+
   const hechos = analizar(movimientos, hoy);
 
   // Al entrar se consulta qué hay en el teléfono; al salir se saca el modelo de la memoria (el archivo se queda).
@@ -39,6 +43,13 @@ export default function Analisis() {
       <Animated.View layout={DESLIZAR}>
         <BloqueIA hechos={hechos} />
       </Animated.View>
+      {/* Entrada a la importación desde imagen (mismo bloque IA: todo se procesa en el teléfono). */}
+      <Boton
+        titulo={i18n.t('importar.entrada')}
+        variante="neutro"
+        icono="image-outline"
+        onPress={() => router.push('/importarImagen')}
+      />
       {hechos.hayDatos ? (
         <AnalisisReglas hechos={hechos} />
       ) : (

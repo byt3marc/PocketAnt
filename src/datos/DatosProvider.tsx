@@ -31,6 +31,8 @@ interface ContextoDatos {
     id?: string,
     imagenes?: readonly ImagenBorrador[],
   ) => Promise<void>;
+  /** Guarda un lote de forma atómica (p. ej. la importación desde imagen): se persiste todo o nada. */
+  guardarLoteMovimientos: (entradas: readonly EntradaMovimiento[]) => Promise<void>;
   eliminarMovimiento: (id: string) => Promise<void>;
   /** Borra lógicamente todos los movimientos; la sincronización propaga el borrado a la nube. */
   limpiarDatos: () => Promise<void>;
@@ -114,6 +116,20 @@ export function DatosProvider({
       await repositorio.guardar(movimiento);
       if (metadatos !== undefined) almacen.conservar(movimientoId, metadatos);
       await recargar();
+      setVersionLocal((v) => v + 1);
+    },
+
+    guardarLoteMovimientos: async (entradas) => {
+      if (entradas.length === 0) return;
+      const ahora = new Date();
+      const lote = entradas.map((entrada) => crearMovimiento(entrada, Crypto.randomUUID(), ahora));
+      // Atómico: si la transacción falla, nada se persiste y el error se propaga al llamante.
+      await repositorio.guardarLote(lote);
+      try {
+        await recargar();
+      } catch {
+        // Un refresco que falla después de un commit no invalida el lote: lo verá la pantalla de destino.
+      }
       setVersionLocal((v) => v + 1);
     },
 

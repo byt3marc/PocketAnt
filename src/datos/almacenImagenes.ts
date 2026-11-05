@@ -224,6 +224,7 @@ export function crearAlmacenImagenes(): AlmacenImagenes {
 
     borrarTemporal(uri) {
       try {
+        if (uri.includes('..') || /%2e/i.test(uri)) return;
         const archivo = new File(uri);
         // Solo se tocan archivos de la caché: nunca una foto ya guardada.
         if (archivo.exists && archivo.uri.startsWith(Paths.cache.uri)) archivo.delete();

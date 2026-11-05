@@ -13,6 +13,8 @@ export interface RepositorioMovimientos {
   listarTodos(): Promise<Movimiento[]>;
   /** Inserta o reemplaza por `id`; si trae `imagenes`, reemplaza también sus filas. */
   guardar(movimiento: Movimiento): Promise<void>;
+  /** Guarda varios movimientos en una sola transacción: si uno falla, ninguno se persiste. */
+  guardarLote(movimientos: readonly Movimiento[]): Promise<void>;
   /** Borrado lógico: conserva el registro para que el borrado se propague. */
   eliminar(id: string, ahora: Date): Promise<void>;
   /** Borrado lógico de todos los registros en una sola operación (para vaciar la app). */

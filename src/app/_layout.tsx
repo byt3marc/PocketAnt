@@ -128,6 +128,7 @@ function Navegacion() {
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="estadisticas" options={{ title: i18n.t('nav.estadisticas') }} />
             <Stack.Screen name="analisis" options={{ title: i18n.t('nav.analisis') }} />
+            <Stack.Screen name="importarImagen" options={{ title: i18n.t('importar.titulo') }} />
             <Stack.Screen
               name="movimiento"
               options={{ presentation: 'modal', title: i18n.t('nav.movimiento') }}

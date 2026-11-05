@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { useState } from 'react';
 import { AppState, Pressable, Text } from 'react-native';
 
 import { AjustesProvider } from '@/ajustes/AjustesProvider';
@@ -30,6 +31,8 @@ const compatible = (parcial: Partial<Extract<EvaluacionIA, { compatible: true }>
 
 function Sonda() {
   const ia = useIA();
+  const [textoDirecto, setTextoDirecto] = useState('');
+  const [errorDirecto, setErrorDirecto] = useState('');
   const boton = (nombre: string, accion: () => void) => (
     <Pressable accessibilityRole="button" accessibilityLabel={nombre} onPress={accion}>
       <Text>{nombre}</Text>
@@ -53,6 +56,23 @@ function Sonda() {
       {boton('detener', () => ia.detener())}
       {boton('liberar', () => void ia.liberar())}
       {boton('reportar', () => ia.reportar())}
+      <Text testID="textoDirecto">{textoDirecto}</Text>
+      <Text testID="errorDirecto">{errorDirecto}</Text>
+      {boton('generarTexto', () => {
+        void ia.generarTexto([{ role: 'user', content: 'hola' }])
+          .then((t) => setTextoDirecto(t))
+          .catch((e: Error) => setErrorDirecto(e.message));
+      })}
+      {boton('generarTextoCorto', () => {
+        void ia.generarTexto([{ role: 'user', content: 'hola' }], { maxCaracteres: 10 })
+          .then((t) => setTextoDirecto(t))
+          .catch((e: Error) => setErrorDirecto(e.message));
+      })}
+      {boton('generarTextoLento', () => {
+        void ia.generarTexto([{ role: 'user', content: 'hola' }], { tiempoMaximoMs: 50 })
+          .then((t) => setTextoDirecto(t))
+          .catch((e: Error) => setErrorDirecto(e.message));
+      })}
     </>
   );
 }
@@ -382,6 +402,48 @@ describe('IAProvider: informe', () => {
     await pulsar('reportar');
     expect(valor('reportado')).toBe('true');
     expect(valor('texto')).toBe('');
+  });
+});
+
+describe('IAProvider: generarTexto', () => {
+  it('carga el modelo si hace falta, pasa a «listo» y devuelve el texto completo', async () => {
+    await montar({ evaluacion: compatible({ descargado: true }), informe: 'Respuesta de texto generada' });
+    await pulsar('refrescar');
+    await avanzar(50);
+    expect(valor('fase')).toBe('descargado');
+
+    await pulsar('generarTexto');
+    await avanzar(15);
+    expect(valor('fase')).toBe('listo');
+    await avanzar(300);
+    expect(valor('textoDirecto')).toBe('Respuesta de texto generada');
+  });
+
+  it('falla con RespuestaIncompletaError si la respuesta supera maxCaracteres', async () => {
+    await montar({
+      evaluacion: compatible({ descargado: true, cargado: true }),
+      informe: 'Texto bastante mas largo de diez caracteres',
+    });
+    await pulsar('refrescar');
+    await avanzar(50);
+
+    await pulsar('generarTextoCorto');
+    await avanzar(300);
+    expect(valor('errorDirecto')).toBe('ia.respuesta_incompleta_largo');
+  });
+
+  it('falla con RespuestaIncompletaError si la generación supera tiempoMaximoMs', async () => {
+    await montar({
+      evaluacion: compatible({ descargado: true, cargado: true }),
+      informe: 'Texto generado lentamente',
+      generacionAtascada: true,
+    });
+    await pulsar('refrescar');
+    await avanzar(50);
+
+    await pulsar('generarTextoLento');
+    await avanzar(60);
+    expect(valor('errorDirecto')).toBe('ia.respuesta_incompleta_tiempo');
   });
 });
 

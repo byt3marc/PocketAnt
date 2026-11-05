@@ -155,6 +155,29 @@ export function crearRepositorioSqlite(db: SQLiteDatabase): RepositorioMovimient
       });
     },
 
+    async guardarLote(movimientos) {
+      if (movimientos.length === 0) return;
+      // Una sola transacción para todo el lote: cualquier error revierte las inserciones anteriores.
+      await db.withTransactionAsync(async () => {
+        const sentencia = await db.prepareAsync(SQL_GUARDAR);
+        const sentenciaImagen = await db.prepareAsync(SQL_GUARDAR_IMAGEN);
+        try {
+          for (const movimiento of movimientos) {
+            await sentencia.executeAsync(parametros(movimiento));
+            if (movimiento.imagenes !== undefined) {
+              await db.runAsync(SQL_BORRAR_IMAGENES, movimiento.id);
+              for (const [orden, imagen] of movimiento.imagenes.entries()) {
+                await sentenciaImagen.executeAsync(parametrosImagen(movimiento.id, imagen, orden));
+              }
+            }
+          }
+        } finally {
+          await sentencia.finalizeAsync();
+          await sentenciaImagen.finalizeAsync();
+        }
+      });
+    },
+
     async eliminar(id, ahora) {
       await db.withTransactionAsync(async () => {
         await db.runAsync(

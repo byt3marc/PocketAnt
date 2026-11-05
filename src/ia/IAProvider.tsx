@@ -57,6 +57,18 @@ export interface InformeIA {
   reportado: boolean;
 }
 
+/** El motor se cortó por un límite interno (no por el usuario): la respuesta está incompleta. */
+export class RespuestaIncompletaError extends Error {
+  constructor(readonly motivo: 'largo' | 'tiempo') {
+    super(`ia.respuesta_incompleta_${motivo}`);
+  }
+}
+
+export interface OpcionesGeneracion {
+  maxCaracteres?: number;
+  tiempoMaximoMs?: number;
+}
+
 interface ContextoIA {
   modelo: InfoModelo;
   estado: EstadoIA;
@@ -71,6 +83,12 @@ interface ContextoIA {
   cancelarDescarga: () => Promise<void>;
   eliminar: () => Promise<void>;
   generarInforme: (mensajes: MensajeIA[]) => Promise<void>;
+  /**
+   * Genera sin tocar el estado del informe (lo usa la importación desde imagen). Reutiliza el mismo motor y
+   * la misma ocupación: no puede correr a la vez que un informe. Falla con el error del motor; quien llama
+   * traduce con `traducirErrorIA`.
+   */
+  generarTexto: (mensajes: MensajeIA[], opciones?: OpcionesGeneracion) => Promise<string>;
   detener: () => void;
   /** Saca el modelo de la memoria (p. ej. al salir de Análisis). El archivo sigue en el teléfono. */
   liberar: () => Promise<void>;
@@ -374,6 +392,62 @@ export function IAProvider({ servicio: servicioPropio, segundoPlano = segundoPla
     }
   };
 
+  const generarTexto = async (
+    mensajes: MensajeIA[],
+    { maxCaracteres = MAX_CARACTERES_RESPUESTA, tiempoMaximoMs = TIEMPO_MAXIMO_GENERACION_MS }: OpcionesGeneracion = {},
+  ): Promise<string> => {
+    if (ocupado.current) throw new Error('ia.ocupado');
+    ocupado.current = true;
+    try {
+      // La primera vez el modelo se carga en memoria; sin avisos de pantalla (los gestiona quien llama).
+      if (estado.fase !== 'listo') {
+        setEstado((actual) => ({ ...actual, fase: 'cargando', error: null }));
+        try {
+          await servicio.cargar();
+        } catch (fallo) {
+          await reiniciarMotor();
+          throw fallo;
+        }
+        setEstado((actual) => ({ ...actual, fase: 'listo' }));
+      }
+      let acumulado = '';
+      let corte: 'largo' | 'tiempo' | null = null;
+      let cortar = () => {};
+      const flujo = servicio.generar(mensajes, (texto) => {
+        acumulado = texto;
+        if (texto.length > maxCaracteres && corte === null) {
+          corte = 'largo';
+          cortar();
+        }
+      });
+      cortar = flujo.detener;
+      generacion.current = flujo; // «Detener» y el pase a segundo plano aplican también a esta generación
+      const tiempoMaximo = setTimeout(() => {
+        corte ??= 'tiempo';
+        flujo.detener();
+      }, tiempoMaximoMs);
+      try {
+        const final = (await flujo.promesa) || acumulado;
+        if (corte !== null || final.length > maxCaracteres) throw new RespuestaIncompletaError(corte ?? 'largo');
+        return final.trim();
+      } catch (fallo) {
+        if (fallo instanceof RespuestaIncompletaError) throw fallo;
+        if (corte !== null) throw new RespuestaIncompletaError(corte);
+        if (!traducirErrorIA(fallo).cancelado) await reiniciarMotor();
+        throw fallo;
+      } finally {
+        clearTimeout(tiempoMaximo);
+        generacion.current = null;
+      }
+    } finally {
+      ocupado.current = false;
+      if (liberarPendiente.current) {
+        liberarPendiente.current = false;
+        await liberar();
+      }
+    }
+  };
+
   const reportar = () => setInforme((actual) => ({ ...actual, reportado: true, texto: '' }));
 
   // Si la app pasa a segundo plano a mitad de un informe, se detiene: no hay que gastar batería a escondidas.
@@ -394,6 +468,7 @@ export function IAProvider({ servicio: servicioPropio, segundoPlano = segundoPla
     cancelarDescarga,
     eliminar,
     generarInforme,
+    generarTexto,
     detener,
     liberar,
     reportar,

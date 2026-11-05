@@ -1,9 +1,9 @@
 {
-  "actualizada": "2026-10-24",
+  "actualizada": "2026-11-05",
   "contacto": "",
   "es": {
     "titulo": "Política de privacidad",
-    "fecha": "Última actualización: 24 de octubre de 2026",
+    "fecha": "Última actualización: 5 de noviembre de 2026",
     "intro": "Pocketant es una app para anotar tus ingresos y gastos. Está hecha para que tus datos se queden contigo: no tiene cuentas, anuncios ni analítica, y no usa servidores propios.",
     "secciones": [
       {
@@ -28,7 +28,8 @@
         "titulo": "Análisis con IA (opcional)",
         "parrafos": [
           "El análisis por reglas se hace en el teléfono. Si activas la IA local, la app descarga un modelo de lenguaje (Gemma 4 E2B, unos 2.6 GB) desde Hugging Face (huggingface.co); como en cualquier descarga, ese servicio ve la dirección IP de tu conexión.",
-          "El modelo funciona dentro de tu teléfono: tus datos no se envían a ningún servidor para generar el informe. Puedes eliminar el modelo cuando quieras desde Ajustes."
+          "El modelo funciona dentro de tu teléfono: tus datos no se envían a ningún servidor para generar el informe. Puedes eliminar el modelo cuando quieras desde Ajustes.",
+          "La importación por imagen (capturas de movimientos o fotos de recibos) funciona igual: eliges una imagen de tu propia galería y tanto el reconocimiento del texto como las propuestas se hacen dentro de tu teléfono. La copia temporal de la imagen elegida se borra en cuanto ya no se necesita, y ni la imagen ni su contenido se envían a ningún servidor."
         ]
       },
       {
@@ -77,7 +78,7 @@
   },
   "en": {
     "titulo": "Privacy policy",
-    "fecha": "Last updated: October 24, 2026",
+    "fecha": "Last updated: November 5, 2026",
     "intro": "Pocketant is an app to keep track of your income and expenses. It's built so your data stays with you: there are no accounts, ads or analytics, and it has no servers of its own.",
     "secciones": [
       {
@@ -102,7 +103,8 @@
         "titulo": "AI analysis (optional)",
         "parrafos": [
           "The rule-based analysis runs on your phone. If you turn on the local AI, the app downloads a language model (Gemma 4 E2B, about 2.6 GB) from Hugging Face (huggingface.co); as with any download, that service sees your connection's IP address.",
-          "The model runs inside your phone: your data isn't sent to any server to generate the report. You can delete the model at any time from Settings."
+          "The model runs inside your phone: your data isn't sent to any server to generate the report. You can delete the model at any time from Settings.",
+          "The image import (movement screenshots or receipt photos) works the same way: you pick an image from your own gallery, and both the text recognition and the proposals happen inside your phone. The temporary copy of the chosen image is deleted as soon as it's no longer needed, and neither the image nor its content is sent to any server."
         ]
       },
       {
