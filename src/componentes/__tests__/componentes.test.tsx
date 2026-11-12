@@ -1,9 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 
 import { AjustesProvider } from '@/ajustes/AjustesProvider';
 import { guardarAjustes } from '@/ajustes/almacen';
-import { formatearFechaCorta, hoy, sumarDias } from '@/dominio/fechas';
+import { formatearDia, formatearFechaCorta, hoy, sumarDias } from '@/dominio/fechas';
 import type { ImagenBorrador } from '@/dominio/imagenes';
 import type { PuntoDia } from '@/dominio/series';
 import type { Movimiento } from '@/dominio/tipos';
@@ -11,6 +11,7 @@ import { crearI18n } from '@/i18n/traducir';
 import { paletaClara } from '@/tema/paleta';
 
 import { BloqueDia } from '../BloqueDia';
+import { Contador } from '../Contador';
 import { ImagenesMovimiento } from '../ImagenesMovimiento';
 import { ItemMovimiento } from '../ItemMovimiento';
 import { SelectorFecha } from '../SelectorFecha';
@@ -151,6 +152,65 @@ describe('ImagenesMovimiento', () => {
     expect(screen.queryByRole('button', { name: 'Agregar foto' })).toBeNull();
     expect(screen.getByText('Llegaste al máximo de 5 fotos.')).toBeTruthy();
   });
+
+  it('tocar una miniatura la abre a pantalla completa, en esa foto', async () => {
+    await render(
+      conAjustes(
+        <ImagenesMovimiento imagenes={[foto('a'), foto('b'), foto('c')]} onAgregar={jest.fn()} onQuitar={jest.fn()} color="gasto" />,
+      ),
+    );
+    expect(screen.queryByRole('button', { name: 'Cerrar foto' })).toBeNull();
+
+    await fireEvent.press(screen.getByRole('imagebutton', { name: 'Ver foto 2 de 3' }));
+    expect(screen.getByText('2 de 3')).toBeTruthy();
+    expect(screen.getByLabelText('Foto 2 de 3')).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cerrar foto' }));
+    expect(screen.queryByRole('button', { name: 'Cerrar foto' })).toBeNull();
+  });
+});
+
+describe('Contador', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  function Probador({ inicial = 5, max = 8 }: { inicial?: number; max?: number }) {
+    const [valor, setValor] = useState(inicial);
+    return (
+      <Contador valor={valor} min={1} max={max} onCambio={setValor} etiquetaMenos="Menos" etiquetaMas="Más" />
+    );
+  }
+
+  it('un toque da un paso', async () => {
+    await render(conAjustes(<Probador />));
+    await fireEvent.press(screen.getByRole('button', { name: 'Más' }));
+    expect(screen.getByText('6')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'Menos' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Menos' }));
+    expect(screen.getByText('4')).toBeTruthy();
+  });
+
+  it('mantener pulsado repite hasta soltar o llegar al límite', async () => {
+    await render(conAjustes(<Probador inicial={2} max={6} />));
+    const mas = screen.getByRole('button', { name: 'Más' });
+    await fireEvent(mas, 'longPress');
+    expect(screen.getByText('3')).toBeTruthy();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(80 * 2);
+    });
+    expect(screen.getByText('5')).toBeTruthy();
+    await fireEvent(mas, 'pressOut');
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(80 * 5);
+    });
+    expect(screen.getByText('5')).toBeTruthy();
+
+    await fireEvent(mas, 'longPress');
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(80 * 10);
+    });
+    expect(screen.getByText('6')).toBeTruthy(); // se detiene en el máximo
+  });
 });
 
 describe('TooltipDia', () => {
@@ -268,6 +328,20 @@ describe('BloqueDia', () => {
     expect(adelante).toBeEnabled();
   });
 
+  it('navegable: lejos de hoy, tocar el día vuelve a hoy de una vez', async () => {
+    await render(
+      conAjustes(<BloqueDia navegable movimientos={[movimiento({ fecha: hoyMasDias(-10) })]} />),
+    );
+    const atras = screen.getByRole('button', { name: 'Periodo anterior' });
+    await fireEvent.press(atras);
+    await fireEvent.press(atras);
+    await fireEvent.press(atras);
+    expect(screen.queryByText('Hoy')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: formatearDia(hoyMasDias(-3), crearI18n('es')) }));
+    expect(screen.getByText('Hoy')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Periodo siguiente' })).toBeDisabled();
+  });
+
   it('dibuja dos barras verticales a la misma escala, con su leyenda debajo', async () => {
     await render(
       conAjustes(
@@ -325,13 +399,14 @@ describe('VistaPreviaHistorial', () => {
     expect(screen.queryByText('Ver más')).toBeNull();
   });
 
-  it('tocar una fila abre Gráficas e Historial', async () => {
+  it('tocar una fila abre ese movimiento', async () => {
     const alAbrir = jest.fn();
-    await render(conAjustes(<VistaPreviaHistorial movimientos={muchos(2)} onAbrir={alAbrir} />));
+    const lista = muchos(2);
+    await render(conAjustes(<VistaPreviaHistorial movimientos={lista} onAbrir={alAbrir} />));
 
     await fireEvent.press(screen.getByText('Gasto 1'));
     await fireEvent.press(screen.getByText('Gasto 2'));
-    expect(alAbrir).toHaveBeenCalledTimes(2);
+    expect(alAbrir.mock.calls.map(([m]) => m.id)).toEqual([lista[0].id, lista[1].id]);
   });
 
   it('sin movimientos muestra el estado vacío y no el enlace', async () => {

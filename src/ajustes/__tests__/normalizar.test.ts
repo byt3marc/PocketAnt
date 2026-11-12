@@ -15,10 +15,12 @@ describe('normalizarAjustes', () => {
       tema: 'sistema',
       moneda: 'auto',
       tipoGrafica: 'linea',
+      vistaEstadisticas: 'graficas',
       idioma: 'sistema',
       notificaciones: NOTIFICACIONES_POR_DEFECTO,
       drive: DRIVE_POR_DEFECTO,
       fuente: 'sistema',
+      cobrosOmitidos: [],
     });
   });
 
@@ -29,10 +31,12 @@ describe('normalizarAjustes', () => {
       tema: 'oscuro',
       moneda: 'PEN',
       tipoGrafica: 'barras',
+      vistaEstadisticas: 'graficas',
       idioma: 'en',
       notificaciones: NOTIFICACIONES_POR_DEFECTO,
       drive: DRIVE_POR_DEFECTO,
       fuente: 'sistema',
+      cobrosOmitidos: [],
     });
   });
 
@@ -41,10 +45,12 @@ describe('normalizarAjustes', () => {
       tema: 'claro',
       moneda: 'PEN',
       tipoGrafica: 'area',
+      vistaEstadisticas: 'graficas',
       idioma: 'sistema',
       notificaciones: NOTIFICACIONES_POR_DEFECTO,
       drive: DRIVE_POR_DEFECTO,
       fuente: 'sistema',
+      cobrosOmitidos: [],
     });
   });
 
@@ -71,6 +77,27 @@ describe('normalizarAjustes', () => {
       ...AJUSTES_POR_DEFECTO,
       tema: 'claro',
     });
+  });
+
+  it('la vista de «Gráficas e Historial» arranca en gráficas y recuerda la elegida', () => {
+    expect(normalizarAjustes({}).vistaEstadisticas).toBe('graficas');
+    expect(normalizarAjustes({ vistaEstadisticas: 'historial' }).vistaEstadisticas).toBe('historial');
+    expect(normalizarAjustes({ vistaEstadisticas: 'tabla' }).vistaEstadisticas).toBe('graficas');
+  });
+
+  it('los cobros omitidos solo aceptan claves id|fecha, sin repetidos y como mucho las 50 más recientes', () => {
+    expect(normalizarAjustes({}).cobrosOmitidos).toEqual([]);
+    expect(normalizarAjustes({ cobrosOmitidos: 'a|2026-11-08' }).cobrosOmitidos).toEqual([]);
+    expect(
+      normalizarAjustes({
+        cobrosOmitidos: ['a|2026-11-08', 'b|2026-13-01', '|2026-11-08', 'c', 5, 'b|2026-11-01', 'a|2026-11-08'],
+      }).cobrosOmitidos,
+    ).toEqual(['b|2026-11-01', 'a|2026-11-08']);
+    const muchas = Array.from({ length: 60 }, (_, i) => `m${i}|2026-11-08`);
+    const conservadas = normalizarAjustes({ cobrosOmitidos: muchas }).cobrosOmitidos;
+    expect(conservadas).toHaveLength(50);
+    expect(conservadas[0]).toBe('m10|2026-11-08');
+    expect(conservadas[49]).toBe('m59|2026-11-08');
   });
 
   it('la fuente viene del sistema y solo acepta una de las tres conocidas', () => {

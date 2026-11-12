@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useEffect, useEffectEvent, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -31,6 +32,9 @@ import { NOMBRE_APP } from '@/marca';
 import { useNotificaciones } from '@/notificaciones/NotificacionesProvider';
 import type { Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
+
+/** La versión de `app.json` (la que ve el usuario en la tienda), para saber qué APK tiene instalado. */
+const VERSION = Constants.expoConfig?.version ?? null;
 
 function resumirImportacion(r: ResultadoImportacion, i18n: I18n): string {
   const lineas = [
@@ -404,7 +408,10 @@ export default function Ajustes() {
 
       <Seccion indice={4} titulo={i18n.t('ajustes.acerca')}>
         <View style={estilos.bloque}>
-          <Texto variante="cuerpo" negrita>{NOMBRE_APP}</Texto>
+          <View style={estilos.filaEntre}>
+            <Texto variante="cuerpo" negrita>{NOMBRE_APP}</Texto>
+            {VERSION ? <Texto variante="secundario">{i18n.t('ajustes.version', { version: VERSION })}</Texto> : null}
+          </View>
           <Texto variante="pequeno">{i18n.t('ajustes.acerca_desc')}</Texto>
           <Texto variante="pequeno">{i18n.t('ajustes.acerca_licencias')}</Texto>
         </View>

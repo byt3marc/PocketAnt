@@ -16,10 +16,12 @@ interface Props {
   /** Día actual, para mostrar "Hoy" y "Ayer". */
   hoy: string;
   onPress: (movimiento: Movimiento) => void;
+  /** No escribe la fecha bajo el motivo: ya la da la cabecera del día (el lector de pantalla la sigue leyendo). */
+  ocultarFecha?: boolean;
 }
 
 /** Fila del historial: motivo, fecha, si es recurrente y el monto con su signo. Tocarla abre la edición. */
-function ItemMovimientoBase({ movimiento, hoy, onPress }: Props) {
+function ItemMovimientoBase({ movimiento, hoy, onPress, ocultarFecha = false }: Props) {
   const estilos = useEstilos(crearEstilos);
   const { formatear, i18n } = useAjustes();
   const esIngreso = movimiento.tipo === 'ingreso';
@@ -54,8 +56,9 @@ function ItemMovimientoBase({ movimiento, hoy, onPress }: Props) {
         <Texto variante="cuerpo" numberOfLines={1} negrita>
           {movimiento.motivo}
         </Texto>
+        {ocultarFecha && detalles.length === 0 ? null : (
         <View style={estilos.detalle}>
-          <Texto variante="pequeno">{fecha}</Texto>
+          {ocultarFecha ? null : <Texto variante="pequeno">{fecha}</Texto>}
           {recurrencia ? (
             <View style={estilos.etiquetaRecurrente}>
               <Icono nombre="repeat" tamano={11} color="primario" />
@@ -73,6 +76,7 @@ function ItemMovimientoBase({ movimiento, hoy, onPress }: Props) {
             </View>
           ) : null}
         </View>
+        )}
       </View>
 
       <Texto

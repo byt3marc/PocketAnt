@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
@@ -7,6 +8,7 @@ import { useEstilos } from '@/tema/useEstilos';
 
 import { Icono } from './Icono';
 import { Texto } from './Texto';
+import { VisorImagenes } from './VisorImagenes';
 
 interface Props {
   imagenes: readonly ImagenBorrador[];
@@ -16,10 +18,14 @@ interface Props {
   color: keyof Paleta;
 }
 
-/** Fotos adjuntas al movimiento: miniaturas, botón para quitar y botón para agregar (hasta `MAX_IMAGENES`). */
+/**
+ * Fotos adjuntas al movimiento: miniaturas (tocar una la abre a pantalla completa), botón para quitar y botón para
+ * agregar (hasta `MAX_IMAGENES`).
+ */
 export function ImagenesMovimiento({ imagenes, onAgregar, onQuitar, color }: Props) {
   const estilos = useEstilos(crearEstilos);
   const { colores, i18n } = useAjustes();
+  const [abierta, setAbierta] = useState<number | null>(null);
   const lleno = imagenes.length >= MAX_IMAGENES;
 
   return (
@@ -34,16 +40,20 @@ export function ImagenesMovimiento({ imagenes, onAgregar, onQuitar, color }: Pro
       <View style={estilos.fila}>
         {imagenes.map((imagen, indice) => (
           <View key={imagen.id} style={estilos.miniatura}>
-            <Image
-              source={{ uri: imagen.uri }}
-              style={estilos.foto}
-              resizeMode="cover"
-              accessibilityIgnoresInvertColors
-              accessibilityLabel={i18n.t('mov.imagen_accesible', {
-                n: indice + 1,
-                total: imagenes.length,
-              })}
-            />
+            <Pressable
+              accessibilityRole="imagebutton"
+              accessibilityLabel={i18n.t('mov.imagen_ver', { n: indice + 1, total: imagenes.length })}
+              onPress={() => setAbierta(indice)}
+              style={({ pressed }) => [estilos.foto, pressed && estilos.pulsado]}
+            >
+              <Image
+                source={{ uri: imagen.uri }}
+                style={estilos.foto}
+                resizeMode="cover"
+                accessibilityIgnoresInvertColors
+                accessible={false}
+              />
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={i18n.t('mov.imagen_quitar')}
@@ -81,6 +91,8 @@ export function ImagenesMovimiento({ imagenes, onAgregar, onQuitar, color }: Pro
           ? i18n.t('mov.imagen_limite', { max: MAX_IMAGENES })
           : i18n.t('mov.imagenes_desc')}
       </Texto>
+
+      <VisorImagenes imagenes={imagenes} indiceInicial={abierta} onCerrar={() => setAbierta(null)} />
     </View>
   );
 }

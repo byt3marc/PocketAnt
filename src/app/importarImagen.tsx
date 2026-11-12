@@ -1,8 +1,14 @@
-import { launchImageLibraryAsync } from 'expo-image-picker';
+import {
+  launchCameraAsync,
+  launchImageLibraryAsync,
+  requestCameraPermissionsAsync,
+  type ImagePickerResult,
+} from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
+import { vibrar } from '@/animacion/haptica';
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import { Boton } from '@/componentes/Boton';
 import { EstadoVacio } from '@/componentes/EstadoVacio';
@@ -28,6 +34,7 @@ import { RespuestaIncompletaError, useIA } from '@/ia/IAProvider';
 import { traducirErrorIA } from '@/ia/errores';
 import { reconocerTextoImagen, soportaOcrLocal } from '@/ia/ocrTexto';
 import type { ClaveTexto } from '@/i18n/es';
+import { useRelleno } from '@/hooks/useRelleno';
 
 /** Provisionales: el paso 1 los ajusta con medidas reales de memoria y tiempo. */
 const MAX_BYTES_IMAGEN_OCR = 30 * 1024 * 1024;
@@ -55,6 +62,7 @@ export default function ImportarImagen() {
   const { estado, refrescar, generarTexto, detener } = useIA();
   const { avisar } = useAviso();
   const router = useRouter();
+  const relleno = useRelleno(true);
 
   const [fase, setFase] = useState<Fase>({ nombre: 'elegir' });
   const [propuestas, setPropuestas] = useState<PropuestaRevision[] | null>(null);
@@ -221,13 +229,24 @@ export default function ImportarImagen() {
     }
   };
 
-  const elegirImagen = async () => {
+  /** Abre la galería o la cámara y, si vuelve con una imagen, la analiza. */
+  const elegirImagen = async (origen: 'galeria' | 'camara') => {
     if (eligiendoRef.current) return;
     eligiendoRef.current = true;
-    let respuesta;
+    let respuesta: ImagePickerResult;
     try {
+      if (origen === 'camara') {
+        const permiso = await requestCameraPermissionsAsync();
+        if (!permiso.granted) {
+          setFase({ nombre: 'fallo', clave: 'error.imagen_permiso' });
+          return;
+        }
+      }
       // `quality: 1` conserva el original sin re-comprimir: el OCR necesita el detalle fino.
-      respuesta = await launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
+      respuesta =
+        origen === 'camara'
+          ? await launchCameraAsync({ mediaTypes: ['images'], quality: 1, exif: false })
+          : await launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
     } catch {
       setFase({ nombre: 'fallo', clave: 'importar.error_ocr' });
       return;
@@ -300,6 +319,8 @@ export default function ImportarImagen() {
     try {
       await guardarLoteMovimientos(entradas);
       router.back();
+      vibrar('exito');
+      avisar({ tono: 'exito', titulo: i18n.plural('importar.agregados', entradas.length) });
     } catch {
       // La transacción revierte por completo: el lote no se tocó y reintentar no puede duplicarlo.
       guardandoRef.current = false;
@@ -310,9 +331,12 @@ export default function ImportarImagen() {
 
   /* ------------------------------ Fases ------------------------------ */
 
+  // Las fases centradas respetan las barras del sistema (edge-to-edge) igual que el resto de pantallas.
+  const centro = [estilos.centro, relleno];
+
   if (estado.fase === 'desconocido') {
     return (
-      <View style={estilos.centro} testID="importar-estado">
+      <View style={centro} testID="importar-estado">
         <ActivityIndicator accessibilityLabel={i18n.t('ia.cargando')} />
       </View>
     );
@@ -320,7 +344,7 @@ export default function ImportarImagen() {
 
   if (bloqueo !== null) {
     return (
-      <View style={estilos.centro} testID="importar-estado">
+      <View style={centro} testID="importar-estado">
         <Tarjeta>
           <EstadoVacio
             icono={bloqueo === 'importar.necesita_modelo' ? 'sparkles-outline' : 'image-outline'}
@@ -328,13 +352,15 @@ export default function ImportarImagen() {
             descripcion={i18n.t(bloqueo)}
           />
         </Tarjeta>
+        {/* Esta pantalla se abre desde «Análisis», donde se descarga el modelo. */}
+        <Boton titulo={i18n.t('comun.volver')} variante="neutro" icono="arrow-back" onPress={() => router.back()} />
       </View>
     );
   }
 
   if (fase.nombre === 'analizando') {
     return (
-      <View style={estilos.centro}>
+      <View style={centro}>
         <ActivityIndicator accessibilityLabel={i18n.t('importar.revisar')} />
         <Texto variante="cuerpo" style={estilos.textoCentro}>
           {i18n.t(fase.etapa === 'ocr' ? 'importar.analizando_ocr' : 'importar.analizando_ia')}
@@ -351,7 +377,7 @@ export default function ImportarImagen() {
     // En fallo el título ya es el mensaje; no hay descripción.
     const descripcion = esFallo ? '' : i18n.t('importar.sin_movimientos_desc');
     return (
-      <View style={estilos.centro}>
+      <View style={centro}>
         <Tarjeta>
           <EstadoVacio icono="image-outline" titulo={titulo} descripcion={descripcion} />
         </Tarjeta>
@@ -362,7 +388,7 @@ export default function ImportarImagen() {
 
   if (fase.nombre === 'elegir') {
     return (
-      <View style={estilos.centro}>
+      <View style={centro}>
         <Tarjeta>
           <EstadoVacio
             icono="image-outline"
@@ -370,7 +396,15 @@ export default function ImportarImagen() {
             descripcion={i18n.t('importar.elegir_desc')}
           />
         </Tarjeta>
-        <Boton titulo={i18n.t('importar.elegir')} icono="image" onPress={() => void elegirImagen()} />
+        <View style={estilos.botones}>
+          <Boton titulo={i18n.t('importar.elegir')} icono="image" onPress={() => void elegirImagen('galeria')} />
+          <Boton
+            titulo={i18n.t('importar.camara')}
+            variante="neutro"
+            icono="camera-outline"
+            onPress={() => void elegirImagen('camara')}
+          />
+        </View>
       </View>
     );
   }
@@ -378,7 +412,7 @@ export default function ImportarImagen() {
   // `revision`: lista editable + resumen. Nada se guarda hasta la confirmación explícita (paso 4).
   const n = resumen?.cantidad ?? 0;
   return (
-    <ScrollView contentContainerStyle={estilos.revision}>
+    <ScrollView contentContainerStyle={[estilos.revision, relleno]}>
       <Texto variante="secundario" style={estilos.resumenEncabezado}>
         {i18n.t('importar.revisar')} · {i18n.t('importar.seleccionadas', { n, total: vigentes?.length ?? 0 })}
       </Texto>
@@ -410,9 +444,10 @@ export default function ImportarImagen() {
 }
 
 const estilos = StyleSheet.create({
-  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
   textoCentro: { textAlign: 'center' },
-  revision: { gap: 12, padding: 16, paddingBottom: 24 },
+  botones: { alignSelf: 'stretch', gap: 10 },
+  revision: { gap: 12 },
   resumenEncabezado: { paddingHorizontal: 2 },
   resumen: { gap: 8 },
 });

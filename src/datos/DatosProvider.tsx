@@ -25,12 +25,15 @@ interface ContextoDatos {
   /** `true` hasta que termina la primera lectura de la base de datos. */
   cargando: boolean;
   totales: Totales;
-  /** Sin `id` crea un movimiento; con `id` edita el existente. `imagenes` reemplaza las fotos actuales. */
+  /**
+   * Sin `id` crea un movimiento; con `id` edita el existente. `imagenes` reemplaza las fotos actuales.
+   * Devuelve el id del movimiento guardado (el nuevo, si se creó).
+   */
   guardarMovimiento: (
     entrada: EntradaMovimiento,
     id?: string,
     imagenes?: readonly ImagenBorrador[],
-  ) => Promise<void>;
+  ) => Promise<string>;
   /** Guarda un lote de forma atómica (p. ej. la importación desde imagen): se persiste todo o nada. */
   guardarLoteMovimientos: (entradas: readonly EntradaMovimiento[]) => Promise<void>;
   eliminarMovimiento: (id: string) => Promise<void>;
@@ -117,6 +120,7 @@ export function DatosProvider({
       if (metadatos !== undefined) almacen.conservar(movimientoId, metadatos);
       await recargar();
       setVersionLocal((v) => v + 1);
+      return movimientoId;
     },
 
     guardarLoteMovimientos: async (entradas) => {

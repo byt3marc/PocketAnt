@@ -24,8 +24,8 @@ const ALTO_DESVANECIDO = 18;
 interface Props {
   /** Del más reciente al más antiguo (como los entrega `useDatos`). */
   movimientos: readonly Movimiento[];
-  /** Se llama al tocar cualquier fila: lleva a Gráficas e Historial. */
-  onAbrir: () => void;
+  /** Se llama al tocar una fila, con su movimiento: lo abre para editarlo. */
+  onAbrir: (movimiento: Movimiento) => void;
   /** `false` con otra pantalla encima: el desplazamiento se detiene (vuelve a empezar al volver). */
   animar?: boolean;
 }
@@ -33,7 +33,8 @@ interface Props {
 /**
  * Vista previa del historial que se desplaza sola: baja despacio por los últimos movimientos, se detiene en el último,
  * vuelve arriba y repite. Rellena el alto que le dé su contenedor. No anima si todo cabe, con otra pantalla encima ni
- * con «reducir animaciones» activado. Para ver más está la tarjeta «Gráficas e Historial», justo encima.
+ * con «reducir animaciones» activado. Tocar un movimiento lo abre para editarlo; para ver más está la tarjeta
+ * «Gráficas e Historial», justo encima.
  */
 export function VistaPreviaHistorial({ movimientos, onAbrir, animar = true }: Props) {
   const estilos = useEstilos(crearEstilos);
@@ -94,7 +95,6 @@ export function VistaPreviaHistorial({ movimientos, onAbrir, animar = true }: Pr
 
   const alMedirVentana = (e: LayoutChangeEvent) => setAltoVentana(e.nativeEvent.layout.height);
   const alMedirContenido = (e: LayoutChangeEvent) => setAltoContenido(e.nativeEvent.layout.height);
-  const abrir = () => onAbrir();
   // `transparent` degrada pasando por gris en iOS; el mismo color con alfa 0 no (la paleta usa #RRGGBB).
   const fondoSinOpacidad = `${colores.superficie}00`;
 
@@ -108,7 +108,7 @@ export function VistaPreviaHistorial({ movimientos, onAbrir, animar = true }: Pr
           {recientes.map((movimiento, i) => (
             <View key={movimiento.id}>
               {i > 0 ? <View style={estilos.separador} /> : null}
-              <ItemMovimiento movimiento={movimiento} hoy={hoy} onPress={abrir} />
+              <ItemMovimiento movimiento={movimiento} hoy={hoy} onPress={onAbrir} />
             </View>
           ))}
         </Animated.View>

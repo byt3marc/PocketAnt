@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
+import { AvisoCobro } from '@/componentes/AvisoCobro';
 import { BloqueDia } from '@/componentes/BloqueDia';
 import { BloqueGrafica } from '@/componentes/BloqueGrafica';
 import { Boton } from '@/componentes/Boton';
@@ -15,6 +16,7 @@ import { Texto } from '@/componentes/Texto';
 import { VistaPreviaHistorial } from '@/componentes/VistaPreviaHistorial';
 import { useDatos } from '@/datos/DatosProvider';
 import { evaluarDesborde, TOLERANCIA_DESBORDE } from '@/dominio/desborde';
+import { useCobros } from '@/hooks/useCobros';
 import { useRelleno } from '@/hooks/useRelleno';
 import { NOMBRE_APP } from '@/marca';
 import { radios, type Paleta } from '@/tema/paleta';
@@ -34,6 +36,8 @@ export default function Inicio() {
   const { width } = useWindowDimensions();
   const { movimientos, totales } = useDatos();
   const { i18n } = useAjustes();
+  const cobros = useCobros();
+  const pendientes = cobros.cobros.filter((c) => c.estado === 'pendiente');
   // Con otra pantalla encima, las animaciones en bucle (historial y esqueleto de la gráfica) se detienen.
   const enfocada = useIsFocused();
 
@@ -142,6 +146,14 @@ export default function Inicio() {
         />
       </View>
 
+      {/* Solo aparece con un cobro recurrente sin anotar; el desborde se recalcula solo al cambiar el alto. */}
+      <AvisoCobro
+        pendientes={pendientes}
+        hoy={cobros.hoy}
+        onRegistrar={(cobro) => void cobros.registrar(cobro)}
+        onOmitir={cobros.omitir}
+      />
+
       {enColumnas ? (
         <View style={estilos.columnas}>
           <View style={estilos.columna}>{hoy}</View>
@@ -179,7 +191,11 @@ export default function Inicio() {
       </Pressable>
 
       {/* Ocupa lo que queda de pantalla; si el resto ya llena el alto, el Home hace scroll. */}
-      <VistaPreviaHistorial movimientos={movimientos} onAbrir={abrirEstadisticas} animar={enfocada} />
+      <VistaPreviaHistorial
+        movimientos={movimientos}
+        onAbrir={(movimiento) => router.push({ pathname: '/movimiento', params: { id: movimiento.id } })}
+        animar={enfocada}
+      />
     </ScrollView>
   );
 }

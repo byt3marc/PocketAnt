@@ -32,6 +32,8 @@ const entrada = (parcial: Partial<EntradaMovimiento> = {}): EntradaMovimiento =>
 
 /** La última operación de lote lanzada por la sonda: permite esperar su rechazo en las pruebas. */
 let ultimaOperacion: Promise<void> | null = null;
+/** El id que devolvió el último `guardarMovimiento` de la sonda. */
+let ultimoId: Promise<string> | null = null;
 
 function Sonda() {
   const datos = useDatos();
@@ -46,6 +48,13 @@ function Sonda() {
           ultimaOperacion = datos.guardarLoteMovimientos([entrada()]);
           // Evita un rechazo «sin manejar» si la prueba aún no ha anexado su propio catch.
           void ultimaOperacion.catch(() => {});
+        }}
+      />
+      <Pressable
+        testID="guardar-uno"
+        accessibilityRole="button"
+        onPress={() => {
+          ultimoId = datos.guardarMovimiento(entrada({ motivo: 'Café' }));
         }}
       />
       <Pressable
@@ -73,6 +82,21 @@ const montar = async (repositorio: ReturnType<typeof crearRepositorioMemoria>) =
 const pulsar = async (testId: string) => {
   await fireEvent.press(screen.getByTestId(testId));
 };
+
+describe('DatosProvider.guardarMovimiento', () => {
+  it('devuelve el id del movimiento creado', async () => {
+    const repo = crearRepositorioMemoria();
+    await montar(repo);
+    await pulsar('guardar-uno');
+    let id = '';
+    await act(async () => {
+      id = await ultimoId!;
+    });
+    const [guardado] = await repo.listarActivos();
+    expect(guardado.motivo).toBe('Café');
+    expect(id).toBe(guardado.id);
+  });
+});
 
 describe('DatosProvider.guardarLoteMovimientos', () => {
   it('persiste el lote, refresca la lista y sube la versión local', async () => {

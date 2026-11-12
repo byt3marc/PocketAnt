@@ -5,6 +5,7 @@ import { limpiarEntradaMonto } from '@/dominio/formato';
 import type { AvisoPropuesta, ErroresPropuesta, PropuestaMovimiento } from '@/dominio/propuestaMovimiento';
 import { hoy } from '@/dominio/fechas';
 import type { TipoMovimiento } from '@/dominio/tipos';
+import { estiloDeFuente } from '@/tema/fuentes';
 import { radios, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
@@ -50,7 +51,9 @@ const CLAVE_AVISO = {
  */
 export function FilaPropuesta({ propuesta, avisos, errores, onEditar, onToggleSeleccion, bloqueada = false }: Props) {
   const estilos = useEstilos(crearEstilos);
-  const { i18n } = useAjustes();
+  const { ajustes, colores, i18n } = useAjustes();
+  // Los campos usan la letra elegida en Ajustes, como los del formulario de movimiento.
+  const fuente = estiloDeFuente(ajustes.fuente);
 
   const textoError = (campo: 'monto' | 'motivo' | 'fecha') => {
     const error = errores[campo];
@@ -122,7 +125,8 @@ export function FilaPropuesta({ propuesta, avisos, errores, onEditar, onToggleSe
           editable={!bloqueada}
           onChangeText={(valor) => onEditar(propuesta.id, { motivo: valor })}
           placeholder={i18n.t('importar.campo_motivo')}
-          style={[estilos.campo, estilos.colorTexto, errores.motivo && estilos.campoConError]}
+          placeholderTextColor={colores.textoTenue}
+          style={[estilos.campo, fuente, estilos.colorTexto, errores.motivo && estilos.campoConError]}
         />
         {textoError('motivo') ? (
           <Texto variante="pequeno" color="gasto">
@@ -137,8 +141,9 @@ export function FilaPropuesta({ propuesta, avisos, errores, onEditar, onToggleSe
             editable={!bloqueada}
             onChangeText={(valor) => onEditar(propuesta.id, { montoTexto: limpiarEntradaMonto(valor) })}
             placeholder="0.00"
+            placeholderTextColor={colores.textoTenue}
             keyboardType="decimal-pad"
-            style={[estilos.monto, estilos.colorTexto, errores.monto && estilos.campoConError]}
+            style={[estilos.monto, fuente, estilos.colorTexto, errores.monto && estilos.campoConError]}
           />
           {/* Sin fecha resuelta el botón ofrece hoy como punto de partida; el campo sigue inválido hasta aceptar una. */}
           <View pointerEvents={bloqueada ? 'none' : 'auto'}>

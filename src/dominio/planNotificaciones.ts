@@ -1,7 +1,7 @@
 import type { I18n } from '@/i18n/traducir';
 
 import type { AjustesNotificaciones } from './ajustesNotificaciones';
-import { claveDeFecha, fechaDeClave, formatearDia, sumarDias } from './fechas';
+import { claveDeFecha, esClaveValida, fechaDeClave, formatearDia, sumarDias } from './fechas';
 import { ocurrencias } from './recurrencia';
 import type { Movimiento } from './tipos';
 
@@ -14,8 +14,11 @@ const MAX_COBROS_POR_MOVIMIENTO = 4;
 const MAX_COBROS_TOTALES = 35;
 const MENSAJES_RECORDATORIO = 4;
 
-/** Qué hacer al tocar una notificación. Viaja en `content.data`. */
-export type DatosNotificacion = { tipo: 'recordatorio' } | { tipo: 'cobro'; id: string };
+/**
+ * Qué hacer al tocar una notificación. Viaja en `content.data`. En un cobro, `fecha` es el día de ese cobro; los avisos
+ * programados por versiones anteriores no la traen.
+ */
+export type DatosNotificacion = { tipo: 'recordatorio' } | { tipo: 'cobro'; id: string; fecha?: string };
 
 export type Disparo =
   | { tipo: 'diario'; hora: number; minuto: number }
@@ -42,7 +45,7 @@ export function leerDatosNotificacion(crudo: unknown): DatosNotificacion | null 
   const datos = crudo as Record<string, unknown>;
   if (datos.tipo === 'recordatorio') return { tipo: 'recordatorio' };
   if (datos.tipo === 'cobro' && typeof datos.id === 'string' && datos.id !== '') {
-    return { tipo: 'cobro', id: datos.id };
+    return esClaveValida(datos.fecha) ? { tipo: 'cobro', id: datos.id, fecha: datos.fecha } : { tipo: 'cobro', id: datos.id };
   }
   return null;
 }
@@ -98,7 +101,7 @@ function planCobros({ ajustes, movimientos, ahora, i18n, formatearMonto }: Entra
             parametros,
           ),
           disparo: { tipo: 'fecha', fecha: cuando },
-          datos: { tipo: 'cobro', id: m.id },
+          datos: { tipo: 'cobro', id: m.id, fecha: cobro },
         },
       });
     }

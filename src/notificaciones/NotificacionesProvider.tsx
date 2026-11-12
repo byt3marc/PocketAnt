@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useEffectEvent,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -13,6 +14,7 @@ import { AppState, Linking, Platform } from 'react-native';
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import { useDialogo } from '@/componentes/DialogoProvider';
 import { useDatos } from '@/datos/DatosProvider';
+import { estaRegistrado } from '@/dominio/cobros';
 import { leerDatosNotificacion, planificarNotificaciones } from '@/dominio/planNotificaciones';
 
 import { asegurarCanal } from './canal';
@@ -116,32 +118,49 @@ export function NotificacionesProvider({ children }: { children: ReactNode }) {
     // `reprogramar` es un evento de efecto: lee siempre lo último sin volver a disparar el efecto.
   }, [cargando, permiso, movimientos, ajustes.notificaciones, ajustes.moneda, i18n.idioma, refresco]);
 
-  // Tocar una notificación: el recordatorio abre el formulario de gasto y el cobro abre ese movimiento.
+  // Tocar una notificación: el recordatorio abre el formulario de gasto. El cobro abre el formulario para anotarlo (una
+  // copia en el día del cobro) o, si ya se anotó o el aviso es de una versión vieja sin fecha, el movimiento original.
   const alTocar = useEffectEvent((respuesta: Notifications.NotificationResponse) => {
     const datos = leerDatosNotificacion(respuesta.notification.request.content.data);
     if (!datos) return;
     if (datos.tipo === 'recordatorio') {
       router.push({ pathname: '/movimiento', params: { tipo: 'gasto' } });
+      return;
+    }
+    const recurrente = movimientos.find((m) => m.id === datos.id);
+    // Solo se ofrece la copia de un cobro posterior al propio movimiento: el primero ya es ese movimiento (copiarlo lo
+    // contaría dos veces), y un aviso que quedó en la bandeja puede ser de algo que ya no es recurrente.
+    const anotable =
+      datos.fecha !== undefined &&
+      recurrente?.recurrente === true &&
+      datos.fecha > recurrente.fecha &&
+      !estaRegistrado(movimientos, recurrente, datos.fecha);
+    if (anotable) {
+      router.push({ pathname: '/movimiento', params: { desde: datos.id, fecha: datos.fecha } });
     } else {
       router.push({ pathname: '/movimiento', params: { id: datos.id } });
     }
   });
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    // Si la app se abrió tocando una notificación, la respuesta ya estaba guardada.
-    const inicial = Notifications.getLastNotificationResponse();
-    const temporizador = inicial
-      ? setTimeout(() => {
-          alTocar(inicial);
-          Notifications.clearLastNotificationResponse();
-        }, 150)
-      : undefined;
     const suscripcion = Notifications.addNotificationResponseReceivedListener(alTocar);
-    return () => {
-      if (temporizador) clearTimeout(temporizador);
-      suscripcion.remove();
-    };
+    return () => suscripcion.remove();
   }, []);
+
+  // Si la app se abrió tocando una notificación, la respuesta ya estaba guardada. Se atiende una sola vez y con los
+  // movimientos ya leídos, para saber si el cobro está anotado.
+  const inicialAtendida = useRef(false);
+  useEffect(() => {
+    if (Platform.OS === 'web' || cargando || inicialAtendida.current) return;
+    const inicial = Notifications.getLastNotificationResponse();
+    if (!inicial) return;
+    const temporizador = setTimeout(() => {
+      inicialAtendida.current = true;
+      alTocar(inicial);
+      Notifications.clearLastNotificationResponse();
+    }, 150);
+    return () => clearTimeout(temporizador);
+  }, [cargando]);
 
   const valor: ContextoNotificaciones = {
     permiso,

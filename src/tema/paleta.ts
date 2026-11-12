@@ -19,6 +19,10 @@ export interface Paleta {
   esqueleto: string;
   /** Velo detrás de diálogos y superposiciones. */
   velo: string;
+  /** Fondo del visor de fotos a pantalla completa: negro en los dos temas, para que la foto destaque. */
+  fondoVisor: string;
+  /** Texto e iconos sobre el visor de fotos. */
+  sobreVisor: string;
 }
 
 export const paletaClara: Paleta = {
@@ -39,6 +43,8 @@ export const paletaClara: Paleta = {
   gastoSuave: '#FEE2E2',
   esqueleto: '#D3DAD6',
   velo: 'rgba(0,0,0,0.4)',
+  fondoVisor: '#000000',
+  sobreVisor: '#FFFFFF',
 };
 
 export const paletaOscura: Paleta = {
@@ -59,6 +65,8 @@ export const paletaOscura: Paleta = {
   gastoSuave: '#3A1717',
   esqueleto: '#33333A',
   velo: 'rgba(0,0,0,0.6)',
+  fondoVisor: '#000000',
+  sobreVisor: '#FFFFFF',
 };
 
 export type EsquemaDeColor = 'claro' | 'oscuro';

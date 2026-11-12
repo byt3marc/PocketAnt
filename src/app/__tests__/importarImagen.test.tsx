@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { launchImageLibraryAsync } from 'expo-image-picker';
+import { launchCameraAsync, launchImageLibraryAsync, requestCameraPermissionsAsync } from 'expo-image-picker';
 
 import { AjustesProvider } from '@/ajustes/AjustesProvider';
 import { AvisoProvider } from '@/componentes/AvisoProvider';
@@ -18,10 +18,19 @@ jest.mock('@/ajustes/almacen', () => ({
   guardarAjustes: jest.fn(),
 }));
 
-jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock('expo-image-picker', () => ({
+  launchImageLibraryAsync: jest.fn(),
+  launchCameraAsync: jest.fn(),
+  requestCameraPermissionsAsync: jest.fn(async () => ({ granted: true })),
+}));
 
 const mockRouter = { back: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
+jest.mock('react-native-safe-area-context', () => {
+  const { createContext } = jest.requireActual('react');
+  const margenes = { top: 0, bottom: 0, left: 0, right: 0 };
+  return { useSafeAreaInsets: () => margenes, SafeAreaInsetsContext: createContext(margenes) };
+});
 
 jest.mock('@/ia/ocrTexto', () => ({
   soportaOcrLocal: jest.fn(() => true),
@@ -134,6 +143,9 @@ describe('importarImagen: accesos y estado del modelo', () => {
     await avanzar(50);
     expect(screen.getByText(/usa la IA en tu teléfono/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Elegir una imagen' })).toBeNull();
+    // Se abre desde «Análisis», donde está la descarga: un botón lleva de vuelta.
+    await fireEvent.press(screen.getByRole('button', { name: 'Volver' }));
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
   });
 
   it('avisa si el teléfono no da para OCR local', async () => {
@@ -285,6 +297,32 @@ describe('importarImagen: análisis', () => {
     expect(mockRouter.back).toHaveBeenCalledTimes(1);
     // La copia temporal del selector se limpia una vez hecho el OCR.
     expect(borrarTemporal).toHaveBeenCalled();
+    // Y lo confirma con un aviso discreto.
+    expect(screen.getByText('1 movimiento agregado')).toBeTruthy();
+  });
+
+  it('también puede tomar la foto con la cámara', async () => {
+    await montar({ evaluacion: compatible({ descargado: true, cargado: true }), informe: EXTRACCION_UN_GASTO });
+    await avanzar(50);
+    (reconocerTextoImagen as jest.Mock).mockResolvedValueOnce('15/10/2026 SUPERMERCADO -45,90');
+    (launchCameraAsync as jest.Mock).mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///foto.jpg' }] });
+    await fireEvent.press(screen.getByRole('button', { name: 'Tomar una foto' }));
+    await avanzar(300);
+
+    expect(requestCameraPermissionsAsync).toHaveBeenCalled();
+    expect(launchCameraAsync).toHaveBeenCalledWith(expect.objectContaining({ quality: 1 }));
+    expect(reconocerTextoImagen).toHaveBeenCalledWith('file:///foto.jpg');
+    expect(screen.getByRole('button', { name: /Agregar 1 movimiento/ })).toBeTruthy();
+  });
+
+  it('sin permiso de cámara lo explica y no abre la cámara', async () => {
+    await montar({ evaluacion: compatible({ descargado: true, cargado: true }) });
+    await avanzar(50);
+    (requestCameraPermissionsAsync as jest.Mock).mockResolvedValueOnce({ granted: false });
+    await fireEvent.press(screen.getByRole('button', { name: 'Tomar una foto' }));
+    await avanzar(50);
+    expect(launchCameraAsync).not.toHaveBeenCalled();
+    expect(screen.getByText(/permiso para usar la cámara/)).toBeTruthy();
   });
 
   it('dos toques rápidos no duplican el lote', async () => {

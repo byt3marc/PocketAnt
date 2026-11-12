@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, type ReactElement } from 'react';
 
 import { AjustesProvider } from '@/ajustes/AjustesProvider';
 import { analizar } from '@/dominio/analisis';
+import { cobrosDe } from '@/dominio/cobros';
 import type { Movimiento } from '@/dominio/tipos';
 import { FORMULARIO_REPORTES } from '@/ia/config';
 import { IAProvider, useIA } from '@/ia/IAProvider';
@@ -400,6 +401,38 @@ describe('BloqueIA', () => {
     await avanzar(100);
     expect(screen.getAllByText('Se acabó la memoria. Cierra otras apps e inténtalo de nuevo.').length).toBe(2);
     expect(screen.getByText('No se pudo preparar la IA')).toBeTruthy();
+  });
+});
+
+describe('AnalisisReglas: cobros recurrentes', () => {
+  it('lista los pendientes con «Registrar» y los próximos con fecha y monto', async () => {
+    const registrar = jest.fn();
+    const movimientos = ejemplo();
+    // Gimnasio, mensual desde el 3 oct: el 3 nov ya pasó (pendiente) y el 3 dic es el próximo.
+    const hoy = '2026-11-10';
+    const cobros = cobrosDe(movimientos, hoy);
+    await render(
+      <AjustesProvider>
+        <AnalisisReglas hechos={analizar(movimientos, hoy)} cobros={cobros} hoy={hoy} onRegistrarCobro={registrar} />
+      </AjustesProvider>,
+    );
+    expect(screen.getByText('Sin registrar')).toBeTruthy();
+    expect(screen.getByText('se cobró hace 7 días · $60.00')).toBeTruthy();
+    expect(screen.getByText('Próximos cobros')).toBeTruthy();
+    expect(screen.getByLabelText('Gimnasio, Jue 3 dic, $60.00')).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Registrar Gimnasio de $60.00, se cobró hace 7 días' }));
+    expect(registrar).toHaveBeenCalledWith(expect.objectContaining({ fecha: '2026-11-03', estado: 'pendiente' }));
+  });
+
+  it('sin cobros no añade nada a la sección', async () => {
+    await render(
+      <AjustesProvider>
+        <AnalisisReglas hechos={analizar(ejemplo(), FIN)} />
+      </AjustesProvider>,
+    );
+    expect(screen.queryByText('Próximos cobros')).toBeNull();
+    expect(screen.queryByText('Sin registrar')).toBeNull();
   });
 });
 

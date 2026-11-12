@@ -11,7 +11,13 @@ import type { FuenteApp } from '@/tema/fuentes';
 import { paletas, type EsquemaDeColor, type Paleta } from '@/tema/paleta';
 
 import { guardarAjustes, leerAjustes } from './almacen';
-import type { Ajustes, PreferenciaTema, TipoGrafica } from './normalizar';
+import {
+  normalizarCobrosOmitidos,
+  type Ajustes,
+  type PreferenciaTema,
+  type TipoGrafica,
+  type VistaEstadisticas,
+} from './normalizar';
 
 /** Que el sistema (barra de estado, diálogos, selector de fecha) siga la elección del usuario. */
 function aplicarEsquemaAlSistema(tema: PreferenciaTema) {
@@ -35,6 +41,7 @@ interface ContextoAjustes {
   cambiarTema: (tema: PreferenciaTema) => void;
   cambiarMoneda: (moneda: string) => void;
   cambiarTipoGrafica: (tipo: TipoGrafica) => void;
+  cambiarVistaEstadisticas: (vista: VistaEstadisticas) => void;
   cambiarIdioma: (idioma: PreferenciaIdioma) => void;
   /** Cambia la fuente del texto de toda la app. */
   cambiarFuente: (fuente: FuenteApp) => void;
@@ -42,6 +49,8 @@ interface ContextoAjustes {
   cambiarNotificaciones: (cambios: CambiosNotificaciones) => void;
   /** Cambia solo los campos indicados de la sincronización con Drive. */
   cambiarDrive: (cambios: Partial<AjustesDrive>) => void;
+  /** Recuerda que un cobro recurrente (`id|fecha`) no se quiere anotar, para no volver a ofrecerlo. */
+  omitirCobro: (clave: string) => void;
 }
 
 export interface CambiosNotificaciones {
@@ -87,10 +96,17 @@ export function AjustesProvider({ children }: { children: ReactNode }) {
     },
     cambiarMoneda: (nueva) => actualizar((actuales) => ({ ...actuales, moneda: nueva })),
     cambiarTipoGrafica: (tipoGrafica) => actualizar((actuales) => ({ ...actuales, tipoGrafica })),
+    cambiarVistaEstadisticas: (vistaEstadisticas) => actualizar((actuales) => ({ ...actuales, vistaEstadisticas })),
     cambiarIdioma: (idioma) => actualizar((actuales) => ({ ...actuales, idioma })),
     cambiarFuente: (fuente) => actualizar((actuales) => ({ ...actuales, fuente })),
     cambiarDrive: (cambios) =>
       actualizar((actuales) => ({ ...actuales, drive: { ...actuales.drive, ...cambios } })),
+    omitirCobro: (clave) =>
+      actualizar((actuales) => ({
+        ...actuales,
+        // `?? []`: ajustes de pruebas o de versiones viejas pueden no traer la lista.
+        cobrosOmitidos: normalizarCobrosOmitidos([...(actuales.cobrosOmitidos ?? []), clave]),
+      })),
     cambiarNotificaciones: (cambios) =>
       actualizar((actuales) => ({
         ...actuales,

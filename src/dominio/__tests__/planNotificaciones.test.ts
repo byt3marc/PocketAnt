@@ -143,10 +143,10 @@ describe('avisos de cobros recurrentes', () => {
     expect(ingles.cuerpo).toBe('Netflix is charged in 3 days (Tue Oct 20) · $15.00');
   });
 
-  it('abre el movimiento al tocarlo', () => {
+  it('lleva el movimiento y el día del cobro para abrirlo al tocarlo', () => {
     const movimiento = gasto({ id: 'abc' });
     const [aviso] = soloCobros(plan([movimiento], soloAvisosDeCobro));
-    expect(aviso.datos).toEqual({ tipo: 'cobro', id: 'abc' });
+    expect(aviso.datos).toEqual({ tipo: 'cobro', id: 'abc', fecha: '2026-10-20' });
   });
 
   it('descarta el aviso cuya hora ya pasó y sigue con el siguiente cobro', () => {
@@ -228,6 +228,16 @@ describe('leerDatosNotificacion', () => {
   it('reconoce los dos tipos', () => {
     expect(leerDatosNotificacion({ tipo: 'recordatorio' })).toEqual({ tipo: 'recordatorio' });
     expect(leerDatosNotificacion({ tipo: 'cobro', id: 'abc' })).toEqual({ tipo: 'cobro', id: 'abc' });
+    expect(leerDatosNotificacion({ tipo: 'cobro', id: 'abc', fecha: '2026-11-08' })).toEqual({
+      tipo: 'cobro',
+      id: 'abc',
+      fecha: '2026-11-08',
+    });
+  });
+
+  it('ignora una fecha de cobro que no sea válida (los avisos viejos no la traen)', () => {
+    expect(leerDatosNotificacion({ tipo: 'cobro', id: 'abc', fecha: '2026-02-30' })).toEqual({ tipo: 'cobro', id: 'abc' });
+    expect(leerDatosNotificacion({ tipo: 'cobro', id: 'abc', fecha: 5 })).toEqual({ tipo: 'cobro', id: 'abc' });
   });
 
   it('descarta lo que no sea válido', () => {

@@ -1,5 +1,6 @@
 import { StyleSheet, Switch, View } from 'react-native';
 
+import { vibrar } from '@/animacion/haptica';
 import { useAjustes } from '@/ajustes/AjustesProvider';
 
 import { Texto } from './Texto';
@@ -26,7 +27,10 @@ export function FilaInterruptor({ titulo, descripcion, valor, onCambio, colorAct
       </View>
       <Switch
         value={valor}
-        onValueChange={onCambio}
+        onValueChange={(nuevo) => {
+          vibrar('seleccion');
+          onCambio(nuevo);
+        }}
         accessibilityLabel={titulo}
         trackColor={{ false: colores.borde, true: colorActivo ?? colores.primario }}
         thumbColor="#FFFFFF"

@@ -3,12 +3,16 @@ import { StyleSheet, View } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import { generarConsejos, type HechosAnalisis } from '@/dominio/analisis';
+import type { Cobro } from '@/dominio/cobros';
+import { formatearDia } from '@/dominio/fechas';
+import { textoCuando } from '@/hooks/useCobros';
 import { DIAS_PLURALES } from '@/i18n/calendario';
 import { radios, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
 import { Entrada } from './Entrada';
 import { Icono, type NombreIcono } from './Icono';
+import { PresionableEscala } from './PresionableEscala';
 import { Tarjeta } from './Tarjeta';
 import { Texto } from './Texto';
 
@@ -41,15 +45,25 @@ function Seccion({ icono, titulo, indice, children }: PropsSeccion) {
 
 interface Props {
   hechos: HechosAnalisis;
+  /**
+   * Cobros de los gastos recurrentes alrededor de hoy (ya sin los omitidos). Van aparte de `hechos` porque estos
+   * también alimentan el prompt de la IA y su forma no debe cambiar.
+   */
+  cobros?: readonly Cobro[];
+  /** Día de referencia de `cobros` (`YYYY-MM-DD`). */
+  hoy?: string;
+  onRegistrarCobro?: (cobro: Cobro) => void;
 }
 
 /** El análisis sin IA: cuentas simples sobre los gastos, al instante y sin descargar nada. */
-export function AnalisisReglas({ hechos }: Props) {
+export function AnalisisReglas({ hechos, cobros = [], hoy, onRegistrarCobro }: Props) {
   const estilos = useEstilos(crearEstilos);
   const { formatear, i18n } = useAjustes();
   const { actual, tendencia, topMotivos, suscripciones, hormiga, diaMasCaro } = hechos;
   const consejos = generarConsejos(hechos, i18n, formatear);
   const mayor = topMotivos[0]?.total ?? 0;
+  const pendientes = hoy ? cobros.filter((c) => c.estado === 'pendiente') : [];
+  const proximos = hoy ? cobros.filter((c) => c.estado === 'proximo') : [];
 
   let textoTendencia: string;
   let colorTendencia: 'ingreso' | 'gasto' | 'textoSecundario' = 'textoSecundario';
@@ -175,6 +189,68 @@ export function AnalisisReglas({ hechos }: Props) {
             </View>
           </>
         )}
+        {pendientes.length > 0 && hoy ? (
+          <View style={estilos.cobros}>
+            <Texto variante="etiqueta">{i18n.t('cobro.pendientes')}</Texto>
+            {pendientes.map((c) => {
+              const cuando = textoCuando(c, hoy, i18n);
+              return (
+                <View key={`${c.movimiento.id}|${c.fecha}`} style={estilos.filaMotivo}>
+                  <View style={estilos.nombreMotivo}>
+                    <Texto variante="cuerpo" numberOfLines={1}>
+                      {c.movimiento.motivo}
+                    </Texto>
+                    <Texto variante="pequeno">{`${cuando} · ${formatear(c.movimiento.monto)}`}</Texto>
+                  </View>
+                  {onRegistrarCobro ? (
+                    <PresionableEscala
+                      accessibilityRole="button"
+                      accessibilityLabel={i18n.t('cobro.registrar_accesible', {
+                        motivo: c.movimiento.motivo,
+                        monto: formatear(c.movimiento.monto),
+                        cuando,
+                      })}
+                      onPress={() => onRegistrarCobro(c)}
+                      hitSlop={6}
+                      style={estilos.registrar}
+                    >
+                      <Texto variante="secundario" color="primario" negrita>
+                        {i18n.t('cobro.registrar')}
+                      </Texto>
+                    </PresionableEscala>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
+        {proximos.length > 0 && hoy ? (
+          <View style={estilos.cobros}>
+            <Texto variante="etiqueta">{i18n.t('cobro.proximos')}</Texto>
+            {proximos.map((c) => {
+              const fecha = formatearDia(c.fecha, i18n, hoy);
+              const monto = formatear(c.movimiento.monto);
+              return (
+                <View
+                  key={`${c.movimiento.id}|${c.fecha}`}
+                  style={estilos.filaMotivo}
+                  accessible
+                  accessibilityLabel={i18n.t('cobro.proximo_accesible', { motivo: c.movimiento.motivo, fecha, monto })}
+                >
+                  <View style={estilos.nombreMotivo}>
+                    <Texto variante="cuerpo" numberOfLines={1}>
+                      {c.movimiento.motivo}
+                    </Texto>
+                    <Texto variante="pequeno">{fecha}</Texto>
+                  </View>
+                  <Texto variante="secundario" negrita style={estilos.numero}>
+                    {monto}
+                  </Texto>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
       </Seccion>
 
       <Seccion indice={4} icono="cafe-outline" titulo={i18n.t('analisis.hormiga')}>
@@ -245,6 +321,8 @@ const crearEstilos = (c: Paleta) =>
     numero: { fontVariant: ['tabular-nums'] },
     pista: { height: 6, borderRadius: radios.pildora, backgroundColor: c.superficieAlta, overflow: 'hidden' },
     barra: { height: '100%', borderRadius: radios.pildora, backgroundColor: c.primario },
+    cobros: { gap: 12, paddingTop: 4 },
+    registrar: { paddingHorizontal: 8, paddingVertical: 8, borderRadius: radios.md },
     consejo: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
     textoConsejo: { flex: 1, lineHeight: 20 },
   });

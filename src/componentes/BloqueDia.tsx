@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import { formatearDia, sumarDias } from '@/dominio/fechas';
@@ -126,9 +126,24 @@ export function BloqueDia({ movimientos, compacto = false, navegable = false }: 
         {navegable ? (
           <View style={estilos.navegacion}>
             <FlechaPeriodo sentido="atras" habilitada={puedeRetroceder} onPress={() => setDesfase(desfase + 1)} />
-            <Texto variante="secundario" style={estilos.etiquetaDia} numberOfLines={1}>
-              {formatearDia(clave, i18n, hoy)}
-            </Texto>
+            {/* Lejos de hoy, tocar el día vuelve a hoy de una vez en lugar de flecha por flecha. */}
+            <Pressable
+              accessibilityRole={esHoy ? 'text' : 'button'}
+              accessibilityHint={esHoy ? undefined : i18n.t('dia.volver_hoy')}
+              disabled={esHoy}
+              onPress={() => setDesfase(0)}
+              hitSlop={6}
+              style={({ pressed }) => [estilos.etiquetaToque, pressed && { opacity: 0.6 }]}
+            >
+              <Texto
+                variante="secundario"
+                color={esHoy ? undefined : 'primario'}
+                style={estilos.etiquetaDia}
+                numberOfLines={1}
+              >
+                {formatearDia(clave, i18n, hoy)}
+              </Texto>
+            </Pressable>
             <FlechaPeriodo sentido="adelante" habilitada={puedeAvanzar} onPress={() => setDesfase(desfase - 1)} />
           </View>
         ) : null}
@@ -194,6 +209,7 @@ const crearEstilos = (c: Paleta) =>
     encabezado: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
     titulo: { flexShrink: 1 },
     navegacion: { flexDirection: 'row', alignItems: 'center', flexShrink: 1, gap: 2 },
+    etiquetaToque: { flexShrink: 1 },
     etiquetaDia: { flexShrink: 1, textAlign: 'center', minWidth: 72 },
     barras: { flexDirection: 'row', gap: 12 },
     // Más ancho para cada leyenda: el monto es lo que más espacio necesita.

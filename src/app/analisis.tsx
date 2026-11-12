@@ -14,6 +14,7 @@ import { Tarjeta } from '@/componentes/Tarjeta';
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import { useDatos } from '@/datos/DatosProvider';
 import { analizar } from '@/dominio/analisis';
+import { useCobros } from '@/hooks/useCobros';
 import { useHoy } from '@/hooks/useHoy';
 import { useRelleno } from '@/hooks/useRelleno';
 import { useIA } from '@/ia/IAProvider';
@@ -28,6 +29,9 @@ export default function Analisis() {
   const router = useRouter();
 
   const hechos = analizar(movimientos, hoy);
+  // La sección es de suscripciones y cobros fijos: solo los gastos (un sueldo recurrente se anota desde el Home).
+  const { cobros, registrar } = useCobros();
+  const cobrosDeGastos = cobros.filter((c) => c.movimiento.tipo === 'gasto');
 
   // Al entrar se consulta qué hay en el teléfono; al salir se saca el modelo de la memoria (el archivo se queda).
   const alEntrar = useEffectEvent(() => void refrescar());
@@ -51,7 +55,12 @@ export default function Analisis() {
         onPress={() => router.push('/importarImagen')}
       />
       {hechos.hayDatos ? (
-        <AnalisisReglas hechos={hechos} />
+        <AnalisisReglas
+          hechos={hechos}
+          cobros={cobrosDeGastos}
+          hoy={hoy}
+          onRegistrarCobro={(cobro) => void registrar(cobro)}
+        />
       ) : (
         <Entrada indice={1}>
           <Tarjeta>

@@ -12,6 +12,7 @@ import { IAProvider } from '@/ia/IAProvider';
 import { crearServicioFalso } from '@/pruebas/servicioIAFalso';
 
 const mockPush = jest.fn();
+const mockGuardar = jest.fn(async () => 'nuevo');
 let mockMovimientos: Movimiento[] = [];
 
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }), useIsFocused: () => true }));
@@ -24,6 +25,7 @@ jest.mock('@/datos/DatosProvider', () => ({
   useDatos: () => ({
     movimientos: mockMovimientos,
     totales: { ingresos: 0, gastos: 0, saldo: 0 },
+    guardarMovimiento: mockGuardar,
   }),
 }));
 // Las gráficas y la vista previa animada no son lo que se prueba aquí.
@@ -72,6 +74,7 @@ const conProveedores = (ui: ReactElement, servicio = crearServicioFalso({ pasoMs
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockGuardar.mockClear();
   mockMovimientos = [];
 });
 
@@ -89,6 +92,58 @@ describe('Inicio: botones del encabezado', () => {
     expect(mockPush).toHaveBeenLastCalledWith('/analisis');
     await fireEvent.press(ajustes);
     expect(mockPush).toHaveBeenLastCalledWith('/ajustes');
+  });
+});
+
+describe('Inicio: cobro recurrente sin anotar', () => {
+  // Mensual desde hace 40 días: el segundo cobro fue hace 9–13 días (pendiente) y el tercero llega en unos 20.
+  const netflix = () =>
+    mov({
+      id: 'netflix',
+      motivo: 'Netflix',
+      monto: 40,
+      fecha: sumarDias(hoy(), -40),
+      recurrente: true,
+      periodo: 'mensual',
+      frecuencia: 1,
+    });
+
+  it('sin recurrentes no muestra nada', async () => {
+    mockMovimientos = [mov({})];
+    await render(conProveedores(<Inicio />));
+    expect(screen.queryByRole('button', { name: /^Registrar/ })).toBeNull();
+  });
+
+  it('muestra el pendiente y «Registrar» guarda una copia simple en el día del cobro, con aviso para editarla', async () => {
+    mockMovimientos = [netflix()];
+    await render(conProveedores(<Inicio />));
+    expect(screen.getByText(/^Netflix · se cobró hace \d+ días · \$40\.00$/)).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: /^Registrar Netflix/ }));
+    await avanzar(0);
+    expect(mockGuardar).toHaveBeenCalledTimes(1);
+    const [entrada] = mockGuardar.mock.calls[0] as unknown as [Record<string, unknown>];
+    expect(entrada).toMatchObject({ tipo: 'gasto', monto: 40, motivo: 'Netflix', recurrente: false, periodo: null });
+    expect(entrada.fecha).not.toBe(netflix().fecha);
+    expect(screen.getByText(/^Gasto registrado/)).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Editar' }));
+    expect(mockPush).toHaveBeenLastCalledWith({ pathname: '/movimiento', params: { id: 'nuevo' } });
+  });
+
+  it('✕ deja de ofrecerlo', async () => {
+    mockMovimientos = [netflix()];
+    await render(conProveedores(<Inicio />));
+    await fireEvent.press(screen.getByRole('button', { name: /^No registrar Netflix/ }));
+    await avanzar(500);
+    expect(screen.queryByRole('button', { name: /^Registrar Netflix/ })).toBeNull();
+    expect(mockGuardar).not.toHaveBeenCalled();
+  });
+
+  it('con varios pendientes muestra el primero y cuántos más hay', async () => {
+    mockMovimientos = [netflix(), { ...netflix(), id: 'spotify', motivo: 'Spotify' }];
+    await render(conProveedores(<Inicio />));
+    expect(screen.getByText('+1 más')).toBeTruthy();
   });
 });
 

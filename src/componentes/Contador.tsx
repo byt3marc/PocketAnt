@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { DURACION, EASE_OUT } from '@/animacion/constantes';
+import { vibrar } from '@/animacion/haptica';
 import { radios, type Paleta } from '@/tema/paleta';
 import { useEstilos } from '@/tema/useEstilos';
 
@@ -29,7 +30,15 @@ interface Props {
   anchoValor?: number;
 }
 
-/** Selector numérico con botones − y +. Al cambiar, el número llega desde el lado del cambio y se asienta (140 ms). */
+/** Al mantener pulsado − o +, cada cuánto da un paso más. */
+const PASO_REPETIDO_MS = 80;
+/** Cuánto hay que mantener pulsado para que empiece a repetir. */
+const ESPERA_REPETIR_MS = 350;
+
+/**
+ * Selector numérico con botones − y +. Al cambiar, el número llega desde el lado del cambio y se asienta (140 ms).
+ * Mantener pulsado un botón repite el paso hasta soltarlo o llegar al límite (útil para recorrer horas o hasta 99).
+ */
 export function Contador({
   valor,
   min,
@@ -48,6 +57,43 @@ export function Contador({
   const avance = useSharedValue(1);
   const sentido = useSharedValue(1);
   const anterior = useRef(valor);
+
+  // El repetidor corre fuera del render: lee siempre lo último (valor, límites y a quién avisar) desde aquí.
+  const ultimos = useRef({ valor, min, max, onCambio });
+  useEffect(() => {
+    ultimos.current = { valor, min, max, onCambio };
+  }, [valor, min, max, onCambio]);
+  const repetidor = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Último valor emitido mientras se mantiene pulsado: los pasos seguidos no esperan a que el padre vuelva a dibujar. */
+  const emitido = useRef<number | null>(null);
+  const detener = () => {
+    if (repetidor.current !== null) clearInterval(repetidor.current);
+    repetidor.current = null;
+    emitido.current = null;
+  };
+  useEffect(() => detener, []);
+
+  /**
+   * Un paso de `delta`; `false` si ya estaba en el límite (y entonces deja de repetir). Un toque suelto parte del valor
+   * que dio el padre (si no lo acepta, el contador no se adelanta por su cuenta); al repetir, del último emitido.
+   */
+  const paso = (delta: number, repitiendo: boolean): boolean => {
+    const actual = ultimos.current;
+    const base = repitiendo && emitido.current !== null ? emitido.current : actual.valor;
+    const siguiente = Math.min(actual.max, Math.max(actual.min, base + delta));
+    if (siguiente === base) {
+      detener();
+      return false;
+    }
+    emitido.current = siguiente;
+    actual.onCambio(siguiente);
+    vibrar('seleccion');
+    return true;
+  };
+  const repetir = (delta: number) => {
+    detener();
+    if (paso(delta, false)) repetidor.current = setInterval(() => paso(delta, true), PASO_REPETIDO_MS);
+  };
 
   // Solo reacciona a un cambio de `valor`: al montar no hay nada que animar. Un valor compartido, no `setState`.
   useEffect(() => {
@@ -75,7 +121,10 @@ export function Contador({
         accessibilityLabel={etiquetaMenos}
         disabled={valor <= min}
         hitSlop={4}
-        onPress={() => onCambio(Math.max(min, valor - 1))}
+        onPress={() => paso(-1, false)}
+        onLongPress={() => repetir(-1)}
+        delayLongPress={ESPERA_REPETIR_MS}
+        onPressOut={detener}
         style={[estilos.boton, valor <= min && estilos.inactivo]}
       >
         <Icono nombre="remove" tamano={18} />
@@ -90,7 +139,10 @@ export function Contador({
         accessibilityLabel={etiquetaMas}
         disabled={valor >= max}
         hitSlop={4}
-        onPress={() => onCambio(Math.min(max, valor + 1))}
+        onPress={() => paso(1, false)}
+        onLongPress={() => repetir(1)}
+        delayLongPress={ESPERA_REPETIR_MS}
+        onPressOut={detener}
         style={[estilos.boton, valor >= max && estilos.inactivo]}
       >
         <Icono nombre="add" tamano={18} />

@@ -131,6 +131,39 @@ describe('AvisoProvider', () => {
     expect(screen.getByText('INFERENCE_FAILED: algo').props.selectable).toBe(true);
   });
 
+  describe('tono de éxito', () => {
+    it('confirma sin interrumpir al lector de pantalla y se cierra antes que un error', async () => {
+      await montar(<Disparador opciones={{ titulo: 'Gasto registrado', tono: 'exito' }} />);
+      await pulsar('avisar');
+      const aviso = screen.getByTestId('aviso');
+      expect(screen.getByText('Gasto registrado')).toBeTruthy();
+      expect(aviso.props.accessibilityLiveRegion).toBe('polite');
+      expect(aviso.props.accessibilityRole).toBeUndefined();
+      await avanzar(3000);
+      expect(screen.getByTestId('aviso')).toBeTruthy();
+      await avanzar(1000);
+      expect(screen.queryByTestId('aviso')).toBeNull();
+    });
+
+    it('su acción se ejecuta y cierra el aviso', async () => {
+      const editar = jest.fn();
+      await montar(
+        <Disparador opciones={{ titulo: 'Gasto registrado', tono: 'exito', accion: { titulo: 'Editar', onPress: editar } }} />,
+      );
+      await pulsar('avisar');
+      await pulsar('Editar');
+      expect(editar).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId('aviso')).toBeNull();
+    });
+
+    it('sin acción no muestra ningún botón extra', async () => {
+      await montar(<Disparador opciones={{ titulo: 'Listo', tono: 'exito' }} />);
+      await pulsar('avisar');
+      expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Cerrar aviso' })).toBeTruthy();
+    });
+  });
+
   it('fuera del proveedor avisa del error de uso', async () => {
     const errorOriginal = console.error;
     console.error = jest.fn();

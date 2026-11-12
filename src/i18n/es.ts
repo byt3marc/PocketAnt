@@ -15,6 +15,7 @@ export const es = {
   'comun.ingresos': 'Ingresos',
   'comun.gastos': 'Gastos',
   'comun.todos': 'Todos',
+  'comun.editar': 'Editar',
   'tipo.ingreso': 'Ingreso',
   'tipo.gasto': 'Gasto',
 
@@ -71,6 +72,8 @@ export const es = {
   'grafica.periodo_anterior': 'Periodo anterior',
   'grafica.periodo_siguiente': 'Periodo siguiente',
   'grafica.hoy_rango': 'Hoy · {rango}',
+  'grafica.volver_actual': 'Toca para volver al periodo actual',
+  'dia.volver_hoy': 'Toca para volver a hoy',
   'grafica.sin_movimientos_periodo': 'Sin movimientos en este periodo',
   'grafica.esqueleto': 'Aún no hay movimientos',
   'dia.sin_movimientos_hoy': 'Sin movimientos hoy',
@@ -125,6 +128,13 @@ export const es = {
   'est.vacio_desc': 'Cuando agregues ingresos o gastos, aparecerán aquí con su fecha y motivo.',
   'est.filtro_vacio_titulo': 'Nada que mostrar con este filtro',
   'est.filtro_vacio_desc': 'Prueba con otro filtro para ver el resto de tus movimientos.',
+  'est.vista_accesible': 'Qué mostrar',
+  'est.vista_graficas': 'Gráficas',
+  'est.buscar': 'Buscar por motivo',
+  'est.buscar_accesible': 'Buscar en el historial',
+  'est.limpiar_busqueda': 'Limpiar búsqueda',
+  'est.busqueda_vacia_titulo': 'Sin resultados para «{texto}»',
+  'est.busqueda_vacia_desc': 'Prueba con otra palabra o revisa el filtro de tipo.',
 
   // — Formulario —
   'mov.titulo_agregar': 'Agregar saldo',
@@ -160,11 +170,23 @@ export const es = {
   'mov.imagen_agregar': 'Agregar foto',
   'mov.imagen_quitar': 'Quitar foto',
   'mov.imagen_accesible': 'Foto {n} de {total}',
+  'mov.imagen_ver': 'Ver foto {n} de {total}',
+  'mov.visor_cerrar': 'Cerrar foto',
   'mov.imagen_limite': 'Llegaste al máximo de {max} fotos.',
   'mov.imagen_fuente_titulo': 'Agregar foto',
   'mov.imagen_fuente_galeria': 'Galería',
   'mov.imagen_fuente_camara': 'Cámara',
   'mov.imagen_fuente_desc': 'Elige de dónde tomarla.',
+  'mov.tipo_accesible': 'Tipo de movimiento',
+  'mov.sugerencias_accesible': 'Motivos frecuentes',
+  'mov.sugerencia_accesible': '{motivo}, {monto}. Toca para usarlo.',
+  'mov.dia_anterior': 'Día anterior',
+  'mov.dia_siguiente': 'Día siguiente',
+  'mov.duplicar': 'Duplicar',
+  'mov.guardado_gasto': 'Gasto registrado · {monto}',
+  'mov.guardado_ingreso': 'Ingreso agregado · {monto}',
+  'mov.guardado_cambios': 'Cambios guardados',
+  'mov.eliminado': 'Movimiento eliminado',
 
   // — Ajustes —
   'ajustes.apariencia': 'Apariencia',
@@ -202,6 +224,7 @@ export const es = {
   'ajustes.borrar_mensaje_otros':
     'Se borrarán {n} movimientos. Si tienes Drive conectado, el borrado llegará también a tu copia de la nube.',
   'ajustes.acerca': 'Acerca de',
+  'ajustes.version': 'Versión {version}',
   'ajustes.acerca_desc':
     'Tus datos se guardan en este dispositivo. Sin cuentas, anuncios ni analítica, y sin servidores propios.',
 
@@ -421,6 +444,9 @@ export const es = {
   'importar.titulo': 'Importar desde imagen',
   'importar.entrada': 'Importar desde imagen',
   'importar.elegir': 'Elegir una imagen',
+  'importar.camara': 'Tomar una foto',
+  'importar.agregados_uno': '{n} movimiento agregado',
+  'importar.agregados_otros': '{n} movimientos agregados',
   'importar.elegir_desc':
     'Una captura del historial de tu app bancaria o una foto de un recibo. Se procesa en tu teléfono y nada sale de él.',
   'importar.analizando_ocr': 'Leyendo la imagen…',
@@ -484,6 +510,24 @@ export const es = {
   'ajustes.acerca_licencias': 'Modelo Gemma 4 de Google (licencia Apache 2.0), motor LiteRT-LM (Apache 2.0) y expo-ai-kit (MIT).',
   'ajustes.privacidad': 'Política de privacidad',
   'ajustes.privacidad_desc': 'Qué datos usa la app y dónde se guardan.',
+  // — Cobros recurrentes —
+  'cobro.resumen': '{motivo} · {cuando} · {monto}',
+  'cobro.gasto_hoy': 'se cobró hoy',
+  'cobro.gasto_ayer': 'se cobró ayer',
+  'cobro.gasto_hace_uno': 'se cobró hace {n} día',
+  'cobro.gasto_hace_otros': 'se cobró hace {n} días',
+  'cobro.ingreso_hoy': 'llegaba hoy',
+  'cobro.ingreso_ayer': 'llegaba ayer',
+  'cobro.ingreso_hace_uno': 'llegaba hace {n} día',
+  'cobro.ingreso_hace_otros': 'llegaba hace {n} días',
+  'cobro.mas_uno': '+{n} más',
+  'cobro.mas_otros': '+{n} más',
+  'cobro.registrar': 'Registrar',
+  'cobro.registrar_accesible': 'Registrar {motivo} de {monto}, {cuando}',
+  'cobro.omitir_accesible': 'No registrar {motivo}, {cuando}',
+  'cobro.pendientes': 'Sin registrar',
+  'cobro.proximos': 'Próximos cobros',
+  'cobro.proximo_accesible': '{motivo}, {fecha}, {monto}',
 } as const;
 
 export type ClaveTexto = keyof typeof es;

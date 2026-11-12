@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-nativ
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { DURACION, EASE_IN_OUT } from '@/animacion/constantes';
+import { vibrar } from '@/animacion/haptica';
 import { useEstilos } from '@/tema/useEstilos';
 import { radios, type Paleta } from '@/tema/paleta';
 
@@ -80,7 +81,10 @@ export function SelectorSegmentado<T extends string>({
             key={opcion.valor}
             accessibilityRole="radio"
             accessibilityState={{ selected: seleccionado }}
-            onPress={() => onCambio(opcion.valor)}
+            onPress={() => {
+              if (!seleccionado) vibrar('seleccion');
+              onCambio(opcion.valor);
+            }}
             style={estilos.segmento}
           >
             <Texto

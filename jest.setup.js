@@ -3,6 +3,9 @@
 // Reanimated (las animaciones terminan al instante), más lo que ese mock no trae y la app usa.
 jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
 
+// Gesture Handler sin módulo nativo (el visor de fotos usa gestos): el mock oficial de la librería.
+require('react-native-gesture-handler/jestSetup');
+
 jest.mock('react-native-reanimated', () => {
   const mock = require('react-native-reanimated/mock');
   return {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useAjustes } from '@/ajustes/AjustesProvider';
 import type { TipoGrafica } from '@/ajustes/normalizar';
@@ -76,9 +76,24 @@ export function BloqueGrafica({
         {navegable ? (
           <View style={estilos.navegacion}>
             <FlechaPeriodo sentido="atras" habilitada={puedeRetroceder} onPress={() => setDesfase(desfase + 1)} />
-            <Texto variante="secundario" style={estilos.rango} numberOfLines={1}>
-              {desfase === 0 ? i18n.t('grafica.hoy_rango', { rango }) : rango}
-            </Texto>
+            {/* Lejos del periodo actual, tocar el rango vuelve a hoy de una vez en lugar de flecha por flecha. */}
+            <Pressable
+              accessibilityRole={desfase > 0 ? 'button' : 'text'}
+              accessibilityHint={desfase > 0 ? i18n.t('grafica.volver_actual') : undefined}
+              disabled={desfase === 0}
+              onPress={() => setDesfase(0)}
+              hitSlop={6}
+              style={({ pressed }) => [estilos.rangoToque, pressed && { opacity: 0.6 }]}
+            >
+              <Texto
+                variante="secundario"
+                color={desfase > 0 ? 'primario' : undefined}
+                style={estilos.rango}
+                numberOfLines={1}
+              >
+                {desfase === 0 ? i18n.t('grafica.hoy_rango', { rango }) : rango}
+              </Texto>
+            </Pressable>
             <FlechaPeriodo sentido="adelante" habilitada={puedeAvanzar} onPress={() => setDesfase(desfase - 1)} />
           </View>
         ) : null}
@@ -150,6 +165,7 @@ const crearEstilos = (c: Paleta) =>
     encabezado: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
     titulos: { flexShrink: 1 },
     navegacion: { flexDirection: 'row', alignItems: 'center', flexShrink: 1, gap: 2 },
+    rangoToque: { flexShrink: 1 },
     rango: { flexShrink: 1, textAlign: 'center' },
     totales: { flexDirection: 'row', gap: 24 },
     total: { flexDirection: 'row', alignItems: 'center', gap: 8 },

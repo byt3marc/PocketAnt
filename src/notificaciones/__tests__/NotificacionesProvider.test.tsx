@@ -4,6 +4,7 @@ import { Text } from 'react-native';
 import { AjustesProvider, useAjustes } from '@/ajustes/AjustesProvider';
 import { Boton } from '@/componentes/Boton';
 import { DialogoProvider } from '@/componentes/DialogoProvider';
+import type { Movimiento } from '@/dominio/tipos';
 
 import { NotificacionesProvider, useNotificaciones } from '../NotificacionesProvider';
 import { leerPermiso, solicitarPermiso, type EstadoPermiso } from '../permiso';
@@ -11,13 +12,21 @@ import { leerPermiso, solicitarPermiso, type EstadoPermiso } from '../permiso';
 jest.mock('../permiso', () => ({ leerPermiso: jest.fn(), solicitarPermiso: jest.fn() }));
 jest.mock('../programador', () => ({ aplicarPlan: jest.fn(async () => {}) }));
 jest.mock('../canal', () => ({ asegurarCanal: jest.fn(async () => {}) }));
+/** Lo que la app recibe al tocar una notificación con estos datos. */
+type Respuesta = { notification: { request: { content: { data: unknown } } } };
+let mockAlTocar: ((respuesta: Respuesta) => void) | undefined;
 jest.mock('expo-notifications', () => ({
   getLastNotificationResponse: () => null,
   clearLastNotificationResponse: jest.fn(),
-  addNotificationResponseReceivedListener: () => ({ remove: jest.fn() }),
+  addNotificationResponseReceivedListener: (escucha: (respuesta: Respuesta) => void) => {
+    mockAlTocar = escucha;
+    return { remove: jest.fn() };
+  },
 }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
-jest.mock('@/datos/DatosProvider', () => ({ useDatos: () => ({ movimientos: [], cargando: false }) }));
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+let mockMovimientos: Movimiento[] = [];
+jest.mock('@/datos/DatosProvider', () => ({ useDatos: () => ({ movimientos: mockMovimientos, cargando: false }) }));
 // Una instalación nueva: sin nada guardado, con los valores por defecto.
 jest.mock('@/ajustes/almacen', () => ({
   leerAjustes: () => ({ ...jest.requireActual('@/ajustes/normalizar').AJUSTES_POR_DEFECTO, idioma: 'es' }),
@@ -72,6 +81,9 @@ const pulsar = async (nombre: string) => {
 beforeEach(() => {
   leer.mockReset();
   solicitar.mockReset();
+  mockPush.mockReset();
+  mockMovimientos = [];
+  mockAlTocar = undefined;
 });
 
 describe('NotificacionesProvider: permiso en contexto', () => {
@@ -120,5 +132,69 @@ describe('NotificacionesProvider: permiso en contexto', () => {
     await montar('concedido');
     await pulsar('guardar gasto recurrente');
     expect(screen.queryByText('¿Te aviso antes de cada cobro?')).toBeNull();
+  });
+});
+
+describe('NotificacionesProvider: tocar un aviso', () => {
+  const movimiento = (parcial: Partial<Movimiento>): Movimiento => ({
+    id: 'netflix',
+    tipo: 'gasto',
+    monto: 40,
+    motivo: 'Netflix',
+    fecha: '2026-08-08',
+    recurrente: true,
+    periodo: 'mensual',
+    frecuencia: 1,
+    actualizadoEn: '2026-08-08T10:00:00.000Z',
+    eliminado: false,
+    ...parcial,
+  });
+  const tocar = async (data: unknown) => {
+    await act(async () => {
+      mockAlTocar!({ notification: { request: { content: { data } } } });
+    });
+  };
+
+  it('el recordatorio abre el formulario de gasto', async () => {
+    await montar('concedido');
+    await tocar({ tipo: 'recordatorio' });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/movimiento', params: { tipo: 'gasto' } });
+  });
+
+  it('un cobro sin anotar abre el formulario con la copia en el día del cobro', async () => {
+    mockMovimientos = [movimiento({})];
+    await montar('concedido');
+    await tocar({ tipo: 'cobro', id: 'netflix', fecha: '2026-11-08' });
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/movimiento',
+      params: { desde: 'netflix', fecha: '2026-11-08' },
+    });
+  });
+
+  it('un cobro ya anotado, un aviso viejo sin fecha o un movimiento borrado abren el original', async () => {
+    mockMovimientos = [movimiento({}), movimiento({ id: 'copia', recurrente: false, periodo: null, fecha: '2026-11-07' })];
+    await montar('concedido');
+    await tocar({ tipo: 'cobro', id: 'netflix', fecha: '2026-11-08' });
+    await tocar({ tipo: 'cobro', id: 'netflix' });
+    await tocar({ tipo: 'cobro', id: 'otro', fecha: '2026-11-08' });
+    expect(mockPush.mock.calls.map(([destino]) => destino)).toEqual([
+      { pathname: '/movimiento', params: { id: 'netflix' } },
+      { pathname: '/movimiento', params: { id: 'netflix' } },
+      { pathname: '/movimiento', params: { id: 'otro' } },
+    ]);
+  });
+
+  it('el primer cobro es el propio movimiento: abre el original, no una copia que lo contaría dos veces', async () => {
+    mockMovimientos = [movimiento({ fecha: '2026-11-20' })];
+    await montar('concedido');
+    await tocar({ tipo: 'cobro', id: 'netflix', fecha: '2026-11-20' });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/movimiento', params: { id: 'netflix' } });
+  });
+
+  it('si el movimiento dejó de ser recurrente, un aviso que ya estaba en la bandeja abre el original', async () => {
+    mockMovimientos = [movimiento({ recurrente: false, periodo: null, frecuencia: null })];
+    await montar('concedido');
+    await tocar({ tipo: 'cobro', id: 'netflix', fecha: '2026-11-08' });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/movimiento', params: { id: 'netflix' } });
   });
 });
